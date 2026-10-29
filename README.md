@@ -22,6 +22,12 @@ Jobs, boat schedules, marketplace listings, and weather remain labelled sample c
 
 ## Source and deployment
 
+### Island coverage
+
+The island filter and submission form include all **33 Kiribati islands**, grouped into Gilbert Islands and Banaba, Phoenix Islands, and Line Islands. Separate local choices are retained for North Tarawa, South Tarawa, Betio, North Tabiteuea (Meang), and South Tabiteuea (Maiaki). The resulting 38 location choices share one catalog in `public/islands.json`; that catalog also drives server validation. Selecting Tarawa or Tabiteuea includes notices tagged with their local areas. Existing notice locations remain valid.
+
+Island names were checked against the [Kiribati Meteorological Service](https://www.met.gov.ki/index.php/component/sppagebuilder/page/18), [Ministry of Culture and Internal Affairs](https://www.mcia.gov.ki/island-profiles), and [National Statistics Office](https://nso.gov.ki/kiribati-districts/line-phoenix/). Adding an island does not create sample notices or establish a live information feed for it.
+
 - `src/worker.mjs`: routing, asset delivery, role boundary.
 - `src/auth.mjs`: native login and member registration, secure HTTP-only session cookies, rate limiting, and password changes.
 - `src/notices.mjs`: notice validation, ownership, moderation, and publication.
