@@ -1,0 +1,53 @@
+{
+  "sources": [
+    "https://www.met.gov.ki/index.php/component/sppagebuilder/page/18",
+    "https://www.mcia.gov.ki/island-profiles",
+    "https://nso.gov.ki/kiribati-districts/line-phoenix/"
+  ],
+  "groups": [
+    {"name":"Gilbert Islands and Banaba","islands":[
+      {"name":"Makin"},
+      {"name":"Butaritari"},
+      {"name":"Marakei"},
+      {"name":"Abaiang"},
+      {"name":"Tarawa","label":"Tarawa (all areas)","includes":["North Tarawa","South Tarawa","Betio"]},
+      {"name":"North Tarawa","parent":"Tarawa"},
+      {"name":"South Tarawa","parent":"Tarawa","includes":["Betio"]},
+      {"name":"Betio","parent":"Tarawa"},
+      {"name":"Maiana"},
+      {"name":"Abemama"},
+      {"name":"Kuria"},
+      {"name":"Aranuka"},
+      {"name":"Nonouti"},
+      {"name":"Tabiteuea","label":"Tabiteuea (all areas)","includes":["North Tabiteuea","South Tabiteuea"]},
+      {"name":"North Tabiteuea","label":"North Tabiteuea (Tabiteuea Meang)","parent":"Tabiteuea"},
+      {"name":"South Tabiteuea","label":"South Tabiteuea (Tabiteuea Maiaki)","parent":"Tabiteuea"},
+      {"name":"Beru"},
+      {"name":"Nikunau"},
+      {"name":"Onotoa"},
+      {"name":"Tamana"},
+      {"name":"Arorae"},
+      {"name":"Banaba"}
+    ]},
+    {"name":"Phoenix Islands","islands":[
+      {"name":"Kanton","label":"Kanton (Canton)"},
+      {"name":"Birnie"},
+      {"name":"Enderbury"},
+      {"name":"Manra","label":"Manra (Sydney Island)"},
+      {"name":"McKean"},
+      {"name":"Nikumaroro","label":"Nikumaroro (Gardner Island)"},
+      {"name":"Orona","label":"Orona (Hull Island)"},
+      {"name":"Rawaki","label":"Rawaki (Phoenix Island)"}
+    ]},
+    {"name":"Line Islands","islands":[
+      {"name":"Teraina","label":"Teraina (Washington Island)"},
+      {"name":"Tabuaeran","label":"Tabuaeran (Fanning Island)"},
+      {"name":"Kiritimati","label":"Kiritimati (Christmas Island)"},
+      {"name":"Malden"},
+      {"name":"Starbuck"},
+      {"name":"Vostok"},
+      {"name":"Flint"},
+      {"name":"Millennium","label":"Millennium (Caroline Island)"}
+    ]}
+  ]
+}
