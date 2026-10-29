@@ -23,7 +23,7 @@ test('all 33 physical islands and the existing local areas share one catalog',()
 });
 test('the submission API accepts every listed island and still rejects unknown locations',async()=>{
  const sql=new DatabaseSync(':memory:');for(const file of readdirSync('migrations').sort())sql.exec(readFileSync('migrations/'+file,'utf8'));
- const db={prepare(query){const statement=sql.prepare(query);let args=[];return{bind(...values){args=values;return this},async first(){return statement.get(...args)||null},async run(){return{meta:{changes:statement.run(...args).changes}}}}}};
+ const db={async batch(statements){const results=[];for(const statement of statements)results.push(await statement.run());return results},prepare(query){const statement=sql.prepare(query);let args=[];return{bind(...values){args=values;return this},async first(){return statement.get(...args)||null},async run(){return{meta:{changes:statement.run(...args).changes}}}}}};
  for(const [index,island] of ISLANDS.entries()){
   const user={userId:'island-tester-'+index,email:'tester@example.test'},request=new Request('https://test.local/api/notices',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({submissionId:crypto.randomUUID(),title:'Island notice',body:'A test notice.',island})});
   assert.equal((await handleApi(request,db,user)).status,201,island);

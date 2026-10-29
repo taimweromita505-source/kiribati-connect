@@ -16,7 +16,7 @@ test('native registration cannot grant admin; sessions protect submissions, appr
  assert.deepEqual((await (await worker.fetch(request('/api/notices'),env)).json()).notices,[]);
  const hash=await makeHash('admin-long-password',env.AUTH_PEPPER);db.sql.prepare("INSERT INTO users VALUES('owner','owner@example.test','Owner',?,'admin','2026-10-29')").run(hash);
  response=await worker.fetch(request('/api/auth/login','POST',{email:'owner@example.test',password:'admin-long-password'}),env);assert.equal(response.status,200);const admin=token(response);
- assert.equal((await worker.fetch(request('/api/moderation/'+id,'PUT',{status:'approved',note:''},admin),env)).status,200);
+ assert.equal((await worker.fetch(request('/api/moderation/'+id,'PUT',{status:'approved',note:'',version:1},admin),env)).status,200);
  assert.equal((await (await worker.fetch(request('/api/notices'),env)).json()).notices.length,1);
  assert.equal((await worker.fetch(request('/api/auth/logout','POST',{},member),env)).status,200);assert.equal((await (await worker.fetch(request('/api/me','GET',null,member),env)).json()).signedIn,false);
 });
