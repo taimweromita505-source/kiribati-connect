@@ -10,15 +10,13 @@
 
 Success for this first pilot: all participants can submit successfully, approval is manageable, and at least three return during the week. Record feedback manually before adding analytics or more features.
 
-## 2. Improve notice management
+## 2. Pilot editable community notices and jobs
 
-The next recommended coding task is **edit, withdraw, and expire notices**:
+Now implemented: My listings, owner editing and resubmission, close and withdraw actions, admin withdrawal, optional notice expiry, required job closing dates, local island time-zone handling, and preserved review events. Published edits require a fresh review before reappearing in the feed.
 
-- Let authors correct drafts or resubmit rejected notices.
-- Let administrators withdraw an approved notice without deleting its review history.
-- Add event dates and expiry so old notices stop appearing as current information.
-- Add pagination beyond the current feed, history, and queue limits.
-- Test ownership, changes after approval, expiry, and offline freshness.
+During the pilot, ask an employer contact to create a real job vacancy with an application method and closing date. Ask an author to edit a notice and check that they understand why it returns to Pending. Close a listing when it is no longer relevant.
+
+The next implementation phase is to extend the same editor to **boat schedules, government announcements, and marketplace listings**, with section-specific fields and verification rules. Add pagination and an accessible audit-history view as usage grows. Shared organisational accounts and verified direct publishing are not implemented yet.
 
 ## 3. Prepare accounts for a wider audience
 
