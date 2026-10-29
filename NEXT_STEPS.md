@@ -10,13 +10,13 @@
 
 Success for this first pilot: all participants can submit successfully, approval is manageable, and at least three return during the week. Record feedback manually before adding analytics or more features.
 
-## 2. Pilot editable community notices and jobs
+## 2. Pilot all five editable listing types
 
 Now implemented: My listings, owner editing and resubmission, close and withdraw actions, admin withdrawal, optional notice expiry, required job closing dates, local island time-zone handling, and preserved review events. Published edits require a fresh review before reappearing in the feed.
 
 During the pilot, ask an employer contact to create a real job vacancy with an application method and closing date. Ask an author to edit a notice and check that they understand why it returns to Pending. Close a listing when it is no longer relevant.
 
-The next implementation phase is to extend the same editor to **boat schedules, government announcements, and marketplace listings**, with section-specific fields and verification rules. Add pagination and an accessible audit-history view as usage grows. Shared organisational accounts and verified direct publishing are not implemented yet.
+All five editors are implemented, including boat confirmation and cancellations, government source checks, and marketplace prices, photo links, availability, and sold status. Recruit one trusted contributor for each category and review the first real submissions carefully. Add pagination and an accessible audit-history view as usage grows. Shared organisational accounts and verified direct publishing are not implemented yet.
 
 ## 3. Prepare accounts for a wider audience
 

@@ -2,11 +2,11 @@
 
 Live: https://kiribati-connect.taimweromita505.workers.dev/
 
-Kiribati Connect brings community notices, local opportunities, and island information into one lightweight mobile-friendly app. The working pilot includes editable community notices and jobs, a shared feed, native accounts, and an admin approval queue. See [NEXT_STEPS.md](NEXT_STEPS.md) for the pilot plan and development priorities.
+Kiribati Connect brings community notices, local opportunities, and island information into one lightweight mobile-friendly app. The working pilot includes editable community notices, jobs, boat schedules, government announcements, and marketplace listings, a shared feed, native accounts, and an admin approval queue. See [NEXT_STEPS.md](NEXT_STEPS.md) for the pilot plan and development priorities.
 
 ## Create and manage listings
 
-Sign in and choose **Create a listing**, then select **Community notice** or **Job vacancy**. Community notices take a title, description, island, and optional expiry date. Jobs also require an employer, application contact, and closing date. All 33 islands and the existing local areas are supported.
+Sign in and choose **Create a listing**, then select one of the five listing types. Community notices take a title, description, island, and optional expiry date. Jobs also require an employer, application contact, and closing date. All 33 islands and the existing local areas are supported.
 
 **My listings** shows your pending, approved, rejected, closed, withdrawn, and expired listings. Edit a listing to update or resubmit it. Editing an approved listing removes it from the public feed until an administrator reviews the new version. **Close listing** ends an active listing; **Withdraw** removes it from circulation. Either can later be edited and submitted for fresh review.
 
@@ -28,7 +28,7 @@ Email verification and automated password recovery are not implemented. Registra
 
 One existing approved notice, **Rain**, was copied with its original identifier, text, island, status, and timestamps. Its owner attribution now points to the new owner account. The original hosted copy remains available separately; changes to that copy do not synchronize with Cloudflare. Use the new URL for the pilot.
 
-Jobs, boat schedules, marketplace listings, and weather remain labelled sample content. Live push delivery remains unimplemented. Existing search, island filtering, bookmarks, and offline reading continue to work.
+Illustrative sample cards remain labelled. Approved member listings are live in all five categories. Weather remains a preview. Live push delivery remains unimplemented. Existing search, island filtering, bookmarks, and offline reading continue to work.
 
 ## Source and deployment
 
@@ -54,7 +54,7 @@ npm test
 npm run build
 ```
 
-`npm test` builds the generated asset module first, then runs the SQLite-backed authentication and moderation tests. Build output embeds the small static assets in one ES-module Worker. To update the existing app using the CLI, authenticate Wrangler to the same Cloudflare account, run the build, then `npx wrangler deploy`. Apply future schema changes using versioned D1 migrations. The initial two schema migrations were applied through the Cloudflare API during this deployment; reconcile the migration ledger before applying them again to this existing database.
+`npm test` builds the generated asset module first, then runs the SQLite-backed authentication and moderation tests. Build output embeds the small static assets in one ES-module Worker. To update the existing app using the CLI, authenticate Wrangler to the same Cloudflare account, run the build, then `npx wrangler deploy`. Apply future schema changes using versioned D1 migrations. The initial schema migrations were applied through the Cloudflare API during this deployment; reconcile the migration ledger before applying them again to this existing database.
 
 `AUTH_PEPPER` is already configured as a Worker secret. Preserve it during deployments and in secure backups. Replacing or losing it invalidates password verification for existing users. No API credentials, owner password, or pepper are stored in the source archive.
 
@@ -63,3 +63,13 @@ The optional daily trigger in the Wrangler configuration removes expired session
 ## Validation
 
 Local tests cover member registration, privilege restrictions, submit/approve/publication, sessions, password changes, all island locations, job validation, owner-only editing, stale review rejection, close/withdraw/resubmit, expiry, and review-history retention. The local browser workflow was exercised with a test job through creation, approval, editing, and return to Pending. No test jobs were published to the production feed.
+
+## Boat, government, and marketplace editors
+
+Boats require an operator, contact, destination, departure time, status, and a fresh confirmation on each edit. Times use the departure island’s UTC offset. Scheduled departures must be in the future when submitted and approved. Listings expire 24 hours after departure; cancellations remain visible during that window. Island filtering includes both ends of a route.
+
+Government announcements require an HTTPS source on an actual .gov.ki domain. An administrator must open and check the source before approval. Editing clears that check. “Official source checked” describes the linked source, not a verified contributor account.
+
+Marketplace listings require a seller, contact, price, currency, condition, and availability. An optional public HTTPS image link displays a photo; direct file uploads are not implemented. Listings default to a 30-day expiry. Mark sold closes the listing and removes it from the public feed.
+
+Migration 0004_all_listing_types.sql was applied directly through the Cloudflare API. Reconcile all four migrations before enabling CLI migration automation. Automated tests also cover route time zones, cancellation, source verification, image links, money validation, and sold listings.

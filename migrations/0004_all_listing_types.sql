@@ -1,0 +1,3 @@
+ALTER TABLE notices ADD COLUMN details_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE notices ADD COLUMN source_verified INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE notices ADD COLUMN confirmed_at TEXT;
