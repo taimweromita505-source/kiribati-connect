@@ -1,4 +1,5 @@
-export const ISLANDS = ['South Tarawa','North Tarawa','Abaiang','Maiana','Kiritimati'];
+import islandCatalog from '../public/islands.json' with {type:'json'};
+export const ISLANDS = islandCatalog.groups.flatMap(group=>group.islands.map(island=>island.name));
 const columns = 'id,title,body,island,status,created_at,reviewed_at';
 const json = (data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 function present(row){return {...row,category:'Community',source:'Community board · Approved',detail:'Approved community notice. Posted '+new Date(row.created_at).toLocaleDateString('en-GB')+'.'}}
