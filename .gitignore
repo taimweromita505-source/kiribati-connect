@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src/assets.generated.mjs
+.dev.vars*
+.env*
+.wrangler/
+*-credentials*
+*-admin-login*
+*.sqlite
+*.sqlite-*
+*.log
