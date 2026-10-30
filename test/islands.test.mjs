@@ -12,13 +12,13 @@ test('all 33 physical islands and the existing local areas share one catalog',()
  for(const name of ['Banaba','Makin','Arorae','North Tabiteuea','South Tabiteuea','Betio','Kanton','Nikumaroro','Rawaki','Teraina','Tabuaeran','Millennium','Flint'])assert.ok(ISLANDS.includes(name),name);
  for(const old of ['South Tarawa','North Tarawa','Abaiang','Maiana','Kiritimati'])assert.ok(ISLANDS.includes(old));
  const html=assets['/community.html'].body;
- const filter=html.match(/<select id="island">([\s\S]*?)<\/select>/)[1],form=html.match(/<select name="island">([\s\S]*?)<\/select>/)[1];
+ const filter=html.match(/<select id="island">([\s\S]*?)<\/select>/)[1],form=html.match(/<select name="island" required>([\s\S]*?)<\/select>/)[1];
  assert.equal((filter.match(/<option/g)||[]).length,39);
- assert.equal((form.match(/<option/g)||[]).length,38);
+ assert.equal((form.match(/<option/g)||[]).length,39);
  assert.equal((filter.match(/<optgroup/g)||[]).length,3);
  assert.match(filter,/value="Tarawa" data-members="North Tarawa\|South Tarawa\|Betio"/);
  assert.match(filter,/value="Tabiteuea" data-members="North Tabiteuea\|South Tabiteuea"/);
- assert.match(form,/value="South Tarawa" selected/);
+ assert.ok(form.includes('<option value="">Choose a target island</option>'));assert.doesNotMatch(form,/ selected/);
  for(const name of ISLANDS){assert.ok(filter.includes('value="'+name+'"'),name);assert.ok(form.includes('value="'+name+'"'),name)}
 });
 test('the submission API accepts every listed island and still rejects unknown locations',async()=>{

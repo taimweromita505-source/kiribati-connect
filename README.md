@@ -81,3 +81,9 @@ Native account email verification and automated password recovery are not yet im
 ## Island coverage
 
 `public/islands.json` contains all 33 physical islands plus five existing local areas, shared by filters, the editor and server validation. Sources: [Kiribati Meteorological Service](https://www.met.gov.ki/index.php/component/sppagebuilder/page/18), [MCIA](https://www.mcia.gov.ki/island-profiles), and [National Statistics Office](https://nso.gov.ki/kiribati-districts/line-phoenix/).
+
+## Community design and island targeting
+
+The interface uses a compact lagoon-and-sand design, a subtle woven accent, visible mobile category navigation and a full-screen mobile editor. Real listings appear by default; illustrative examples are opt-in. The weather placeholder temperature is removed and notifications accurately state their availability. Cards show image previews, publisher organisations where supplied, deadlines/fares and updated dates; showcases offer sharing.
+
+Every listing must select a target island. Starting a new draft from a specific island preselects that island; starting from All islands requires an explicit choice. The target is shown in private previews and publisher guidance. Island feeds match the target island, existing Tarawa/Tabiteuea area groups, and boat destination islands. All islands remains the combined feed.

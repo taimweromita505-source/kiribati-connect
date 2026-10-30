@@ -8,7 +8,7 @@ const escape=text=>text.replaceAll('&','&amp;').replaceAll('"','&quot;').replace
 function islandOptions(selected){return catalog.groups.map(group=>'<optgroup label="'+escape(group.name)+'">'+group.islands.map(island=>'<option value="'+escape(island.name)+'"'+(island.name===selected?' selected':'')+(island.includes?' data-members="'+escape(island.includes.join('|'))+'"':'')+'>'+escape(island.label||island.name)+'</option>').join('')+'</optgroup>').join('')}
 assets['/community.html'].body=assets['/community.html'].body
  .replace(/(<select id="island">)[\s\S]*?(<\/select>)/,'$1<option>All islands</option>'+islandOptions()+'$2')
- .replace(/(<select name="island">)[\s\S]*?(<\/select>)/,'$1'+islandOptions('South Tarawa')+'$2')
+ .replace(/(<select name="island" required>)[\s\S]*?(<\/select>)/,'$1<option value="">Choose a target island</option>'+islandOptions()+'$2')
  .replace(/(<select name="destinationIsland">)[\s\S]*?(<\/select>)/,'$1'+islandOptions('Abaiang')+'$2');
 writeFileSync('src/assets.generated.mjs','export const assets='+JSON.stringify(assets)+';');mkdirSync('dist',{recursive:true});
 await esbuild.build({entryPoints:['src/worker.mjs'],bundle:true,format:'esm',platform:'browser',target:'es2022',outfile:'dist/worker.mjs',minify:true});
