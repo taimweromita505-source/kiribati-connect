@@ -8,7 +8,7 @@ function database(){const sql=new DatabaseSync(':memory:');for(const file of rea
 const origin='https://test.example';
 const request=(path,method='GET',body,cookie='',extra={})=>new Request(origin+path,{method,headers:{origin,'content-type':'application/json',cookie,...extra},...(body?{body:JSON.stringify(body)}:{})});
 const token=response=>response.headers.get('set-cookie')?.split(';')[0];
-test('native registration cannot grant admin; sessions protect submissions, approval and logout',async()=>{const db=database(),env={DB:db,AUTH_PEPPER:'unit-test-pepper-not-for-production'};
+test('native registration cannot grant admin; sessions protect drafts, payment gating and logout',async()=>{const db=database(),env={DB:db,AUTH_PEPPER:'unit-test-pepper-not-for-production'};
  let response=await worker.fetch(request('/api/auth/register','POST',{name:'Member',email:'member@example.test',password:'member-long-password',role:'admin'}),env);assert.equal(response.status,201);const member=token(response);assert.match(response.headers.get('set-cookie'),/HttpOnly; Secure; SameSite=Lax/);
  let me=await (await worker.fetch(request('/api/me','GET',null,member),env)).json();assert.equal(me.signedIn,true);assert.equal(me.isAdmin,false);
  assert.equal((await worker.fetch(request('/api/moderation','GET',null,member),env)).status,403);
@@ -16,7 +16,10 @@ test('native registration cannot grant admin; sessions protect submissions, appr
  assert.deepEqual((await (await worker.fetch(request('/api/notices'),env)).json()).notices,[]);
  const hash=await makeHash('admin-long-password',env.AUTH_PEPPER);db.sql.prepare("INSERT INTO users VALUES('owner','owner@example.test','Owner',?,'admin','2026-10-29')").run(hash);
  response=await worker.fetch(request('/api/auth/login','POST',{email:'owner@example.test',password:'admin-long-password'}),env);assert.equal(response.status,200);const admin=token(response);
- assert.equal((await worker.fetch(request('/api/moderation/'+id,'PUT',{status:'approved',note:'',version:1},admin),env)).status,200);
+ assert.equal((await worker.fetch(request('/api/moderation/'+id,'PUT',{status:'approved',note:'',version:1},admin),env)).status,400);
+ assert.equal((await worker.fetch(request('/api/notices/'+id+'/publish','PUT',{version:1},member),env)).status,402);
+ db.sql.prepare("UPDATE notices SET payment_state='paid' WHERE id=?").run(id);
+ assert.equal((await worker.fetch(request('/api/notices/'+id+'/publish','PUT',{version:1},member),env)).status,200);
  assert.equal((await (await worker.fetch(request('/api/notices'),env)).json()).notices.length,1);
  assert.equal((await worker.fetch(request('/api/auth/logout','POST',{},member),env)).status,200);assert.equal((await (await worker.fetch(request('/api/me','GET',null,member),env)).json()).signedIn,false);
 });

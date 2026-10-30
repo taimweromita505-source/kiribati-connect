@@ -53,5 +53,8 @@ test('marketplace photos and prices are validated; the built editor includes all
  assert.equal(JSON.parse(normalizeListing({...market(),price:'0'},now).details_json).price,0);
  const html=assets['/community.html'].body;for(const value of ['Community','Jobs','Boats','Government','Marketplace'])assert.ok(html.includes('value="'+value+'"'));
  const destination=html.match(/<select name="destinationIsland">([\s\S]*?)<\/select>/)[1];assert.equal((destination.match(/<option/g)||[]).length,38);
- assert.match(assets['/app.js'].body,/destinationIsland/);assert.match(assets['/notices.js'].body,/sourceVerified/);
+ assert.match(assets['/app.js'].body,/destinationIsland/);
+ assert.match(assets['/notices.js'].body,/Save draft/);
+ assert.match(assets['/notices.js'].body,/Pay AUD \$1 & publish/);
+ assert.doesNotMatch(assets['/notices.js'].body,/Approve listing/);
 });

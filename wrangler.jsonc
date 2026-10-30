@@ -1,12 +1,32 @@
 {
- "$schema":"node_modules/wrangler/config-schema.json",
- "name":"kiribati-connect",
- "account_id":"0609aceb5bb38bd3f97d3f9c87f1a433",
- "main":"dist/worker.mjs",
- "compatibility_date":"2026-10-29",
- "compatibility_flags":["nodejs_compat"],
- "workers_dev":true,
- "observability":{"enabled":true},
- "d1_databases":[{"binding":"DB","database_name":"kiribati-connect-db","database_id":"e554e2a3-f5fc-4952-b129-4b33cd251edd","migrations_dir":"migrations"}],
- "triggers":{"crons":["0 17 * * *"]}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kiribati-connect",
+  "account_id": "0609aceb5bb38bd3f97d3f9c87f1a433",
+  "main": "dist/worker.mjs",
+  "compatibility_date": "2026-10-29",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kiribati-connect-db",
+      "database_id": "e554e2a3-f5fc-4952-b129-4b33cd251edd",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 17 * * *"
+    ]
+  },
+  "vars": {
+    "PAYMENT_MODE": "test",
+    "SQUARE_LOCATION_ID": "LJC3JV2Z9SXP6",
+    "SQUARE_WEBHOOK_URL": "https://kiribati-connect.taimweromita505.workers.dev/api/payments/webhook"
+  }
 }

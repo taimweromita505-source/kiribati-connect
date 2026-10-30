@@ -1,7 +1,8 @@
 import {assets} from './assets.generated.mjs';
 import {getUser,handleAuth,reply} from './auth.mjs';
-import {handleApi} from './notices.mjs';
-const security={'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Strict-Transport-Security':'max-age=31536000'};
+import {handleHub} from './hub.mjs';
+import {handlePayments} from './payments.mjs';
+const security={'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: blob:; connect-src 'self'; base-uri 'self'; form-action 'self' https://square.link https://checkout.square.site; frame-ancestors 'none'"};
 export default {
  async fetch(request,env,ctx){try{
   const url=new URL(request.url),path=url.pathname;
@@ -11,10 +12,10 @@ export default {
    if(path.startsWith('/api/auth/'))return await handleAuth(request,env,user);
    // Roles come from the database, never from client emails or identity headers.
    const adminEmails=user?.role==='admin'?user.email:'';
-   return handleApi(request,env.DB,user,adminEmails);
+   return path.startsWith('/api/payments/')?handlePayments(request,env,user):handleHub(request,env,user);
   }
   if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405,headers:security});
-  const key=path==='/'||path==='/index.html'?'/community.html':path==='/login'||path==='/account'?'/auth.html':path;
+  const key=path==='/'||path==='/index.html'?'/community.html':path==='/login'||path==='/account'?'/auth.html':path.startsWith('/listing/')?'/community.html':path;
   const asset=assets[key];if(!asset)return new Response('Not found',{status:404,headers:security});
   return new Response(request.method==='HEAD'?null:asset.body,{headers:{...security,'Content-Type':asset.type,'Cache-Control':'no-cache'}});
  }catch(error){console.error(JSON.stringify({event:'request_failed',message:error instanceof Error?error.message:'Unknown error'}));return reply({error:'The app is temporarily unavailable. Please try again.'},503)}},
