@@ -6,7 +6,7 @@ Kiribati Connect is a lightweight information and showcase hub for Kiribati. It 
 
 ## Publishing and managing a showcase
 
-Accounts and browsing are free. Each new showcase listing costs **AUD $1**. Save a private draft, add up to four screenshots/photos and four HTTPS web links, preview it, and pay through **Square-hosted checkout**, with Google Pay enabled where eligible. Only server-confirmed payment publishes a new listing; redirects and client fields never grant publication. No admin approval is required.
+Accounts and browsing are free. Each new showcase listing costs **AUD $1**. Save a private draft, add up to four screenshots/photos and four HTTPS web links, preview it, and pay through **PayPal checkout** when PayPal lifts the merchant account restriction. Google Pay is a separate PayPal merchant capability and remains pending eligibility and setup. Only server-confirmed payment publishes a new listing; redirects and client fields never grant publication. No admin approval is required.
 
 **My hub** provides free editing, mark sold/filled/completed, archive, delete, and restore. Delete is recoverable: the record remains privately in Deleted until restored. It is not a permanent purge. Paid listings can be restored and republished without another fee. Site owners can remove inappropriate listings; contributors cannot undo an owner removal.
 
@@ -23,14 +23,25 @@ Uploaded JPEG/PNG/WebP images are resized in the browser to JPEG, at most 350 KB
 - `src/worker.mjs`: routes, embedded static assets, native account boundary.
 - `src/auth.mjs`: native accounts, hashed passwords, sessions, password changes and rate limits.
 - `src/hub.mjs`: drafts, showcases, links, image uploads, owner lifecycle and owner removals.
-- `src/payments.mjs`: Square Checkout API, verified webhooks, exact AUD 100-cent checks and idempotent publication.
+- `src/paypal.mjs`: PayPal Orders API, verified notifications, exact AUD $1 checks, seller matching, idempotent capture and publication.
+- `src/payments.mjs`: retained Square Sandbox adapter and regression coverage. New checkout requests use the selected PAYMENT_PROVIDER.
 - `src/listing-types.mjs`: section-specific validation and island time zones.
 - `src/notices.mjs`: historical moderation implementation retained for regression coverage; it is not routed by the production Worker.
 - `public/`: the mobile-friendly UI, editor, preview, offline feed and account screens.
 - `migrations/`: D1 schema changes.
 - `test/`: native authentication, original validation regressions, and the current hub/payment tests.
 
-## Square configuration
+## PayPal configuration
+
+The selected provider is now `PAYMENT_PROVIDER=paypal`. Live PayPal credentials and the expected seller ID are configured in Cloudflare Worker secrets. The live connection was verified, but order creation returned `PAYEE_ACCOUNT_RESTRICTED`; checkout is paused with `PAYMENT_MODE=disabled` until PayPal lifts the restriction. Cloudflare stores `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` and the expected `PAYPAL_MERCHANT_ID` as bindings (keep the client secret in Worker secrets). `PAYMENT_MODE=test` uses PayPal Sandbox; `live` uses PayPal production.
+
+The dedicated live app is **Kiribati Connect**. Register the exact notification URL `https://kiribati-connect.taimweromita505.workers.dev/api/payments/paypal/webhook` for `CHECKOUT.ORDER.APPROVED` and `PAYMENT.CAPTURE.COMPLETED`. Its Webhook ID is required for verification. The server verifies notification signatures with PayPal, retrieves the actual order, checks the exact amount, currency, listing, invoice identifier and seller, and publishes only after a completed capture. The order-approved event also captures server-side if the customer never returns. The authenticated return endpoint is `/api/payments/capture`; a return URL alone never authorizes publication.
+
+Apply migration 0006_paypal.sql once. The app retains Square historical records separately; it never treats Square orders as PayPal orders. The original published notice remains grandfathered.
+
+The live app and webhook are configured. PayPal Developer eligibility shows live PayPal payments available. No credentials or identity documents are included in source. Identity/address review may still be requested by PayPal; API credentials alone do not establish completed verification. The 30-test suite covers capture, notification verification, seller/amount matching and duplicate handling with mocked PayPal responses. A live AUD $1 order attempt returned `PAYEE_ACCOUNT_RESTRICTED` before payment. No real payment has been charged during setup, and a completed end-to-end capture/notification test remains outstanding. Google Pay is explicitly not provisioned for this live account.
+
+## Previous Square Sandbox configuration
 
 Square application: **Kiribati Connect** (`sq0idp-VhEShNTuORscy3QdjqYx4A`). The selected sandbox location is `LJC3JV2Z9SXP6`. Application identifiers and location IDs are not credentials.
 
@@ -49,7 +60,7 @@ Subscribe to `payment.created` and `payment.updated`. The Worker verifies Square
 
 The checkout body fixes the amount on the server, enables Google Pay, disables tips/coupons/loyalty, and uses a stable idempotency key. No user card details pass through this app. A single generic reusable payment link must not replace the per-listing checkout mapping.
 
-**Checkout stays disabled until the environment-specific access token, webhook signature key, URL and location are connected.** The deployed Worker is now connected in test mode. All 22 automated tests pass. A real Square Sandbox checkout simulation completed for AUD $1, the handler retrieved the completed payment from Square, publication succeeded in an isolated local database, and the deployed signed webhook returned HTTP 200. No production test listing was created. Square Sandbox does not support Google Pay/Apple Pay wallet payments; live wallet eligibility still needs checking before live launch. See https://developer.squareup.com/docs/checkout-api/guidelines-and-limitations.
+**Checkout stays disabled until the environment-specific access token, webhook signature key, URL and location are connected.** The previous Square adapter was connected and tested in test mode. The complete suite now has 30 passing tests. A real Square Sandbox checkout simulation completed for AUD $1, the handler retrieved the completed payment from Square, publication succeeded in an isolated local database, and the deployed signed webhook returned HTTP 200. No production test listing was created. Square Sandbox does not support Google Pay/Apple Pay wallet payments; live wallet eligibility still needs checking before live launch. See https://developer.squareup.com/docs/checkout-api/guidelines-and-limitations.
 
 ## Development and deployment
 

@@ -1,10 +1,10 @@
-# Next steps
+# Next steps — PayPal account restriction
 
-1. Completed: Square Sandbox is connected to the Worker using secrets, matching Australian location and exact notification URL, with PAYMENT_MODE=test. The enabled subscription receives only payment.created and payment.updated.
-2. Completed: an actual AUD $1 Square Sandbox checkout simulation, payment re-read, local publication and deployed signed notification test. Duplicate delivery, wrong amounts, ownership, unpaid access and signatures are covered by automated tests. Square does not support Google Pay in Sandbox; verify live wallet eligibility on an eligible device after production activation.
-3. Confirm the Australian Square account can accept live online payments and its payout bank details are complete. The owner completes account verification or agreements directly.
-4. Before live activation, connect production credentials, approve the live switch, and document refund, dispute, privacy and acceptable-content handling. Do not put sandbox credentials in a live configuration.
-5. Pilot with trusted contributors: create a showcase, upload screenshots, add links, publish after payment, edit, complete, archive, delete and restore. Test on low-end Android phones and intermittent connections.
-6. Add account email verification/recovery, pagination, shared organisation membership, and R2 media storage as usage grows. Weather and live push remain separate future work.
+The dedicated live PayPal app, four Worker secret bindings and two-event webhook are connected. Live order creation returned PAYEE_ACCOUNT_RESTRICTED, so PAYMENT_MODE is disabled and no money was charged.
 
-Each new showcase costs AUD $1; accounts and edits are free. Listings publish after confirmed payment with no admin review. Owner takedown remains available. Delete currently moves a listing into a private recoverable Deleted state.
+1. Resolve the merchant account restriction directly in PayPal, including any identity/address requests. Contact PayPal if no action is shown.
+2. Once PayPal removes the restriction, set PAYMENT_MODE=live and complete one legitimate AUD $1 checkout. Verify captured payment, webhook delivery and automatic publication.
+3. Google Pay is not provisioned for the live account; separate onboarding and wallet integration are required.
+4. Add email verification and password recovery before widening the pilot.
+
+Accounts and editing remain free. Drafts remain private until verified completed payment; no admin review is required.
