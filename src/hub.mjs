@@ -10,6 +10,32 @@ async function decorated(db,row,pub=false){const images=await db.prepare('SELECT
 async function record(db,row,user,action,now,mutation,token){return db.batch([mutation,db.prepare('INSERT INTO listing_events(id,listing_id,actor_id,action,version,created_at,snapshot_json) SELECT ?,?,?,?,?,?,? FROM notices WHERE id=? AND mutation_id=?').bind(crypto.randomUUID(),row.id,user.userId,action,row.version+1,now,JSON.stringify({status:row.status,title:row.title}),row.id,token)])}
 export async function handleHub(request,env,user){const db=env.DB,url=new URL(request.url),path=url.pathname,now=new Date().toISOString(),write=!['GET','HEAD'].includes(request.method);if(write&&request.headers.get('origin')!==url.origin)return reply({error:'Please submit from this site.'},403);
  try{
+ const comments=path.match(/^\/api\/showcases\/([-a-f0-9]{36})\/comments(?:\/([-a-f0-9]{36}))?$/i);
+ if(comments){
+  const listingId=comments[1],commentId=comments[2];
+  const listing=await db.prepare(`SELECT n.id FROM notices n WHERE n.id=? AND ${live}`).bind(listingId,now).first();
+  if(!listing)return reply({error:'This showcase is unavailable.'},404);
+  if(request.method==='GET'&&!commentId){
+   let cursor=null;const before=url.searchParams.get('before');
+   if(before){cursor=await db.prepare('SELECT created_at,id FROM listing_comments WHERE id=? AND listing_id=?').bind(before,listingId).first();if(!cursor)return reply({error:'Invalid comments page.'},400)}
+   const rows=await db.prepare(`SELECT c.id,c.body,c.created_at,u.name AS displayName,c.author_id FROM listing_comments c JOIN users u ON u.id=c.author_id WHERE c.listing_id=? AND c.deleted_at IS NULL ${cursor?'AND (c.created_at,c.id)<(?,?)':''} ORDER BY c.created_at DESC,c.id DESC LIMIT 51`).bind(listingId,...(cursor?[cursor.created_at,cursor.id]:[])).all();
+   const page=rows.results.slice(0,50);return reply({comments:page.map(({author_id,...item})=>({...item,canDelete:!!user&&(user.userId===author_id||user.role==='admin')})),next:rows.results.length>50?page.at(-1).id:null});
+  }
+  if(!user)return reply({error:'Sign in or create a free account to comment.'},401);
+  if(request.method==='POST'&&!commentId){
+   const data=await readJson(request),body=typeof data.body==='string'?data.body.trim():'';
+   if(!body||body.length>1000)return reply({error:'Write a comment between 1 and 1,000 characters.'},400);
+   const id=crypto.randomUUID(),cutoff=new Date(Date.now()-60000).toISOString();
+   const result=await db.prepare(`INSERT INTO listing_comments(id,listing_id,author_id,body,created_at) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM notices n WHERE n.id=? AND ${live}) AND (SELECT COUNT(*) FROM listing_comments WHERE author_id=? AND created_at>?)<5`).bind(id,listingId,user.userId,body,now,listingId,now,user.userId,cutoff).run();
+   if(!result.meta.changes)return reply({error:'Please wait a minute before posting again, or refresh the listing.'},429);
+   return reply({id},201);
+  }
+  if(request.method==='DELETE'&&commentId){
+   const result=await db.prepare('UPDATE listing_comments SET deleted_at=?,deleted_by=? WHERE id=? AND listing_id=? AND deleted_at IS NULL AND (author_id=? OR ?=1)').bind(now,user.userId,commentId,listingId,user.userId,user.role==='admin'?1:0).run();
+   return result.meta.changes?reply({removed:true}):reply({error:'Comment not found.'},404);
+  }
+  return reply({error:'Method not allowed.'},405);
+ }
  if(path==='/api/me')return reply({signedIn:!!user,isAdmin:user?.role==='admin',displayName:user?.displayName,paymentProvider:env.PAYMENT_PROVIDER||'square',paymentsReady:env.PAYMENT_PROVIDER==='paypal'?!!env.PAYPAL_CLIENT_ID&&!!env.PAYPAL_CLIENT_SECRET&&!!env.PAYPAL_WEBHOOK_ID&&!!env.PAYPAL_MERCHANT_ID&&['test','live'].includes(env.PAYMENT_MODE):!!env.SQUARE_ACCESS_TOKEN&&!!env.SQUARE_WEBHOOK_SECRET&&!!env.SQUARE_LOCATION_ID&&!!env.SQUARE_WEBHOOK_URL&&['test','live'].includes(env.PAYMENT_MODE),paymentMode:env.PAYMENT_MODE||'disabled'});
  if(path==='/api/notices'&&request.method==='GET'){const rows=await db.prepare(`SELECT n.* FROM notices n WHERE ${live} ORDER BY n.created_at DESC LIMIT 200`).bind(now).all();return reply({notices:await Promise.all(rows.results.map(row=>decorated(db,row,true)))})}
  const publicId=path.match(/^\/api\/showcases\/([-a-f0-9]{36})$/i);if(publicId&&request.method==='GET'){const row=await db.prepare(`SELECT n.* FROM notices n WHERE n.id=? AND ${live}`).bind(publicId[1],now).first();if(!row)return reply({error:'This showcase is unavailable.'},404);const result=await decorated(db,row,true);delete result.author_id;delete result.mutation_id;delete result.review_note;delete result.reviewed_by;return reply({notice:result})}

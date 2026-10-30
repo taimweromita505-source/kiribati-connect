@@ -18,7 +18,17 @@ Government sources require an actual HTTPS .gov.ki link. The source is publisher
 
 Uploaded JPEG/PNG/WebP images are resized in the browser to JPEG, at most 350 KB each; original files are limited to 8 MB. The initial small pilot stores up to four images per listing as D1 BLOBs. Image reads enforce listing visibility and ownership; hidden drafts' images are private. R2 migration is a future capacity improvement. Four labelled, public HTTPS web links are supported per listing. A public showcase is available at `/listing/{id}` while the listing is published and unexpired.
 
+## Listing comments
+
+Everyone can read comments on a public listing. Creating a free account and signing in is required to post; commenting is free and does not require a listing payment. Open a listing from its feed card to join the conversation. Signing in from that page returns the member to the listing.
+
+Comments display the member's name, time and plain text (1–1,000 characters). Members can remove their own comments; site administrators can remove any comment. Removal hides the comment and retains the record privately. Requests enforce same-origin writes, server-side sessions, five posts per member per minute and pages of 50 comments. Comments follow listing visibility, so private, expired, completed, archived and removed listings do not expose conversations.
+
+Migration `0006_comments.sql` was applied directly through the Cloudflare API on 30 October 2026. Reconcile the migration ledger before running CLI migrations. The suite has 32 passing tests, including comment access, visibility, removal, posting limits and pagination. Comment posting/removal was also checked through the interface using an isolated local preview; no public test comments were created.
+
 ## Architecture
+
+The proposed Kiri assistant is saved in [the later integration plan](docs/assistant-integration-plan.md). It is not implemented yet.
 
 - `src/worker.mjs`: routes, embedded static assets, native account boundary.
 - `src/auth.mjs`: native accounts, hashed passwords, sessions, password changes and rate limits.
