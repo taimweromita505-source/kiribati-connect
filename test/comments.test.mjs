@@ -37,3 +37,13 @@ test('comments reject cross-origin writes, bound posting rate and paginate witho
  for(let i=0;i<55;i++)db.sql.prepare('INSERT INTO listing_comments(id,listing_id,author_id,body,created_at) VALUES(?,?,?,?,?)').run(crypto.randomUUID(),data.submissionId,owner.userId,'Older '+i,'2026-01-01T00:00:00.000Z');
  const first=await(await hub(db,path)).json(),second=await(await hub(db,path+'?before='+first.next)).json();assert.equal(first.comments.length,50);assert.equal(second.comments.length,10);assert.equal(new Set([...first.comments,...second.comments].map(c=>c.id)).size,60);assert.equal(second.next,null);
 });
+
+test('listing owners can remove viewer comments only on their own listings',async()=>{
+ const db=database();for(const u of [owner,other,admin])db.sql.prepare('INSERT INTO users(id,email,name,password_hash,created_at) VALUES(?,?,?,?,?)').run(u.userId,u.email,u.userId,'unused',new Date().toISOString());
+ const data=await draft(db);await fulfillPayment(db,payment(db,data.submissionId),'test');const path='showcases/'+data.submissionId+'/comments';const {id}=await(await hub(db,path,'POST',{body:'Viewer question'},other)).json();
+ assert.equal((await(await hub(db,path,'GET',null,owner)).json()).comments[0].canDelete,true);
+ assert.equal((await hub(db,path+'/'+id,'DELETE',null,owner)).status,200);
+ const second=await draft(db);db.sql.prepare("UPDATE notices SET author_id=?,status='approved',payment_state='legacy' WHERE id=?").run(other.userId,second.submissionId);const otherPath='showcases/'+second.submissionId+'/comments';const posted=await(await hub(db,otherPath,'POST',{body:'Another viewer'},admin)).json();
+ assert.equal((await(await hub(db,otherPath,'GET',null,owner)).json()).comments[0].canDelete,false);
+ assert.equal((await hub(db,otherPath+'/'+posted.id,'DELETE',null,owner)).status,404);
+});

@@ -29,5 +29,8 @@
     "SQUARE_LOCATION_ID": "LJC3JV2Z9SXP6",
     "SQUARE_WEBHOOK_URL": "https://kiribati-connect.taimweromita505.workers.dev/api/payments/webhook",
     "PAYMENT_PROVIDER": "paypal"
+  },
+  "ai": {
+    "binding": "AI"
   }
 }

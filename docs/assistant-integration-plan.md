@@ -1,6 +1,6 @@
 # Kiri assistant integration plan
 
-Saved 30 October 2026 for later implementation. This is a product plan, not an implemented feature or deployed model service.
+Saved 30 October 2026 for later implementation. The initial Cloudflare membership assistant was implemented on 31 October 2026. Custom Hugging Face model hosting and the remaining contextual shortcuts are follow-up work.
 
 ## Identity
 
@@ -60,3 +60,9 @@ Show “AI assistant · Can make mistakes” and a feedback option.
 ## Account check on 30 October 2026
 
 Google Cloud billing showed AUD $427.04 available promotional credit (100% remaining), expiring 28 December 2026. Billing is paid and active; October costs showed AUD $1.23. Credit scope says certain usage; GPU coverage and quota are not yet confirmed. No model-hosting resources were created during this check.
+
+## Initial implementation — 31 October 2026
+
+Kiri now uses Cloudflare Workers AI temporarily, with a frigatebird/wave SVG profile, floating launch button and responsive chat dialog. Kiri requires its own payment-confirmed membership: AUD $2 per calendar month or AUD $12 per calendar year. Renewal is manual; listing fees do not unlock Kiri. Access expires server-side, and repeat payment notifications do not duplicate membership time. Usage is limited to 30 messages daily and five per minute per member, with a shared service limit.
+
+English-first responses and public-island context are implemented. The app does not store chats or retrain from them. The custom model, reviewed training feedback, contextual Ask Kiri/Help me write buttons and first-visit introduction remain later work.

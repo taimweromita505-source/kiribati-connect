@@ -13,13 +13,13 @@ export async function handleHub(request,env,user){const db=env.DB,url=new URL(re
  const comments=path.match(/^\/api\/showcases\/([-a-f0-9]{36})\/comments(?:\/([-a-f0-9]{36}))?$/i);
  if(comments){
   const listingId=comments[1],commentId=comments[2];
-  const listing=await db.prepare(`SELECT n.id FROM notices n WHERE n.id=? AND ${live}`).bind(listingId,now).first();
+  const listing=await db.prepare(`SELECT n.id,n.author_id FROM notices n WHERE n.id=? AND ${live}`).bind(listingId,now).first();
   if(!listing)return reply({error:'This showcase is unavailable.'},404);
   if(request.method==='GET'&&!commentId){
    let cursor=null;const before=url.searchParams.get('before');
    if(before){cursor=await db.prepare('SELECT created_at,id FROM listing_comments WHERE id=? AND listing_id=?').bind(before,listingId).first();if(!cursor)return reply({error:'Invalid comments page.'},400)}
    const rows=await db.prepare(`SELECT c.id,c.body,c.created_at,u.name AS displayName,c.author_id FROM listing_comments c JOIN users u ON u.id=c.author_id WHERE c.listing_id=? AND c.deleted_at IS NULL ${cursor?'AND (c.created_at,c.id)<(?,?)':''} ORDER BY c.created_at DESC,c.id DESC LIMIT 51`).bind(listingId,...(cursor?[cursor.created_at,cursor.id]:[])).all();
-   const page=rows.results.slice(0,50);return reply({comments:page.map(({author_id,...item})=>({...item,canDelete:!!user&&(user.userId===author_id||user.role==='admin')})),next:rows.results.length>50?page.at(-1).id:null});
+   const page=rows.results.slice(0,50);return reply({comments:page.map(({author_id,...item})=>({...item,canDelete:!!user&&(user.userId===author_id||user.userId===listing.author_id||user.role==='admin')})),next:rows.results.length>50?page.at(-1).id:null});
   }
   if(!user)return reply({error:'Sign in or create a free account to comment.'},401);
   if(request.method==='POST'&&!commentId){
@@ -31,7 +31,7 @@ export async function handleHub(request,env,user){const db=env.DB,url=new URL(re
    return reply({id},201);
   }
   if(request.method==='DELETE'&&commentId){
-   const result=await db.prepare('UPDATE listing_comments SET deleted_at=?,deleted_by=? WHERE id=? AND listing_id=? AND deleted_at IS NULL AND (author_id=? OR ?=1)').bind(now,user.userId,commentId,listingId,user.userId,user.role==='admin'?1:0).run();
+   const result=await db.prepare('UPDATE listing_comments SET deleted_at=?,deleted_by=? WHERE id=? AND listing_id=? AND deleted_at IS NULL AND (author_id=? OR ?=1)').bind(now,user.userId,commentId,listingId,user.userId,user.role==='admin'||user.userId===listing.author_id?1:0).run();
    return result.meta.changes?reply({removed:true}):reply({error:'Comment not found.'},404);
   }
   return reply({error:'Method not allowed.'},405);

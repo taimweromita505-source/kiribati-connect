@@ -22,13 +22,13 @@ Uploaded JPEG/PNG/WebP images are resized in the browser to JPEG, at most 350 KB
 
 Everyone can read comments on a public listing. Creating a free account and signing in is required to post; commenting is free and does not require a listing payment. Open a listing from its feed card to join the conversation. Signing in from that page returns the member to the listing.
 
-Comments display the member's name, time and plain text (1–1,000 characters). Members can remove their own comments; site administrators can remove any comment. Removal hides the comment and retains the record privately. Requests enforce same-origin writes, server-side sessions, five posts per member per minute and pages of 50 comments. Comments follow listing visibility, so private, expired, completed, archived and removed listings do not expose conversations.
+Comments display the member's name, time and plain text (1–1,000 characters). Members can remove their own comments; listing owners can remove viewer comments on their own listings, and site administrators can remove any comment. Removal hides the comment and retains the record privately. Requests enforce same-origin writes, server-side sessions, five posts per member per minute and pages of 50 comments. Comments follow listing visibility, so private, expired, completed, archived and removed listings do not expose conversations.
 
-Migration `0006_comments.sql` was applied directly through the Cloudflare API on 30 October 2026. Reconcile the migration ledger before running CLI migrations. The suite has 32 passing tests, including comment access, visibility, removal, posting limits and pagination. Comment posting/removal was also checked through the interface using an isolated local preview; no public test comments were created.
+Migration `0006_comments.sql` was applied directly through the Cloudflare API on 30 October 2026. Reconcile the migration ledger before running CLI migrations. The suite has 33 passing tests, including comment access, visibility, removal, posting limits and pagination. Comment posting/removal was also checked through the interface using an isolated local preview; no public test comments were created.
 
 ## Architecture
 
-The proposed Kiri assistant is saved in [the later integration plan](docs/assistant-integration-plan.md). It is not implemented yet.
+The Kiri product direction and custom-model follow-up are saved in [the assistant integration plan](docs/assistant-integration-plan.md). The initial membership-gated Cloudflare assistant is now implemented.
 
 - `src/worker.mjs`: routes, embedded static assets, native account boundary.
 - `src/auth.mjs`: native accounts, hashed passwords, sessions, password changes and rate limits.
@@ -97,3 +97,15 @@ Native account email verification and automated password recovery are not yet im
 The interface uses a compact lagoon-and-sand design, a subtle woven accent, visible mobile category navigation and a full-screen mobile editor. Real listings appear by default; illustrative examples are opt-in. The weather placeholder temperature is removed and notifications accurately state their availability. Cards show image previews, publisher organisations where supplied, deadlines/fares and updated dates; showcases offer sharing.
 
 Every listing must select a target island. Starting a new draft from a specific island preselects that island; starting from All islands requires an explicit choice. The target is shown in private previews and publisher guidance. Island feeds match the target island, existing Tarawa/Tabiteuea area groups, and boat destination islands. All islands remains the combined feed.
+
+## Kiri membership and assistant
+
+Kiri is separate from the AUD $1 listing fee: AUD $2 buys one calendar month and AUD $12 buys one calendar year. Renewals are manual with no recurring charge. Paying for a listing, a grandfathered listing, an unpaid order, a pending capture or a client return parameter cannot unlock Kiri. Only a verified completed PayPal capture activates or extends the account membership. Renewals add time to the later of the existing expiry or confirmation time; calendar month ends are clamped. Duplicate captures/webhooks cannot extend access twice.
+
+The floating Kiri button opens a side panel on desktop and a full-screen dialog on mobile. Accounts are free; membership options appear before chat. Kiri uses the native Workers AI binding and `@cf/meta/llama-3.1-8b-instruct-fp8` temporarily, not the owner's Hugging Face model. It replies in English first and receives only a bounded public listing sample for the selected island, never private drafts. It cannot publish, edit, charge or remove content.
+
+The API checks session, confirmed membership and expiry on every message; it limits input/history, output to 400 tokens, five requests per member per minute, 30 per member daily and 500 globally daily. These are service limits, not a monetary spending cap. Chat stays in page memory; the app does not store conversation content or automatically train on it. Messages are processed by Cloudflare.
+
+Membership checkout uses the existing PayPal webhook and secrets with separate `kiri_checkouts` and `kiri_memberships` records. Automatic refund/dispute-driven revocation is not implemented. The UI shows expiry and manual renewal. Expired members are blocked server-side. Migration `0007_kiri_memberships.sql` was applied directly through the Cloudflare API on 31 October 2026; reconcile direct API migrations with the CLI ledger.
+
+Verification: 39 tests pass, including payment isolation, plan pricing, capture validation, webhook fulfillment, renewal idempotency, expiry, sandbox/live isolation, AI limits and listing-owner comment removal. A real Cloudflare model smoke call succeeded. Chat and pricing UI were exercised in an isolated local preview with a fixture membership; a real buyer's live membership capture remains to be tested. Live monthly order creation and redirect to PayPal succeeded; checkout was cancelled without payment and membership correctly stayed locked.
