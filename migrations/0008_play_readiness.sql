@@ -1,0 +1,10 @@
+ALTER TABLE users ADD COLUMN deleted_at TEXT;
+CREATE TABLE user_blocks(user_id TEXT NOT NULL REFERENCES users(id),blocked_id TEXT NOT NULL REFERENCES users(id),created_at TEXT NOT NULL,PRIMARY KEY(user_id,blocked_id));
+CREATE INDEX user_blocks_reverse ON user_blocks(blocked_id,user_id);
+CREATE TABLE safety_reports(id TEXT PRIMARY KEY,reporter_id TEXT REFERENCES users(id),kind TEXT NOT NULL,target_id TEXT NOT NULL,reason TEXT NOT NULL,details TEXT NOT NULL DEFAULT '',snapshot TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'open',created_at TEXT NOT NULL,resolved_at TEXT);
+CREATE INDEX safety_reports_queue ON safety_reports(status,created_at);
+CREATE TABLE play_intents(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,listing_id TEXT,product_id TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE play_purchases(token_hash TEXT PRIMARY KEY,token TEXT NOT NULL,user_id TEXT NOT NULL REFERENCES users(id),intent_id TEXT NOT NULL REFERENCES play_intents(id),kind TEXT NOT NULL,product_id TEXT NOT NULL,state TEXT NOT NULL,expires_at TEXT,acknowledged INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,checked_at TEXT NOT NULL,fulfilled_at TEXT);
+CREATE UNIQUE INDEX play_listing_intent ON play_intents(listing_id) WHERE kind='listing';
+CREATE UNIQUE INDEX play_listing_purchase ON play_purchases(intent_id) WHERE kind='listing';
+ALTER TABLE kiri_memberships ADD COLUMN provider TEXT NOT NULL DEFAULT 'paypal';

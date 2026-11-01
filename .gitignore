@@ -9,3 +9,11 @@ src/assets.generated.mjs
 *.sqlite
 *.sqlite-*
 *.log
+
+android/.gradle/
+android/**/build/
+android/local.properties
+android/keystore.properties
+*.jks
+*.keystore
+release-private/

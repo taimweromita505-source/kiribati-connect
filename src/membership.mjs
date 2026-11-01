@@ -23,7 +23,7 @@ export async function fulfillMembership(db,order,env){
    SELECT p.user_id,'active',strftime('%Y-%m-%dT%H:%M:%fZ',CASE WHEN m.paid_until>? AND m.livemode=p.livemode THEN m.paid_until ELSE ? END,?,'floor'),p.capture_id,?,p.livemode,?
    FROM kiri_checkouts p LEFT JOIN kiri_memberships m ON m.user_id=p.user_id
    WHERE p.id=? AND p.state='paid' AND p.capture_id=? AND p.fulfilled_at IS NULL
-   ON CONFLICT(user_id) DO UPDATE SET state='active',paid_until=excluded.paid_until,payment_id=excluded.payment_id,confirmed_at=excluded.confirmed_at,livemode=excluded.livemode,updated_at=excluded.updated_at`).bind(now,now,'+'+months+' months',now,now,attempt.id,capture.id),
+   ON CONFLICT(user_id) DO UPDATE SET state='active',paid_until=excluded.paid_until,payment_id=excluded.payment_id,confirmed_at=excluded.confirmed_at,livemode=excluded.livemode,provider='paypal',updated_at=excluded.updated_at`).bind(now,now,'+'+months+' months',now,now,attempt.id,capture.id),
   db.prepare("UPDATE kiri_checkouts SET fulfilled_at=COALESCE(fulfilled_at,?) WHERE id=? AND state='paid' AND capture_id=?").bind(now,attempt.id,capture.id)
  ]);return true;
 }

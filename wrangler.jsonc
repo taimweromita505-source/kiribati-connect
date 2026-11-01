@@ -21,14 +21,19 @@
   ],
   "triggers": {
     "crons": [
-      "0 17 * * *"
+      "0 */6 * * *"
     ]
   },
   "vars": {
     "PAYMENT_MODE": "live",
     "SQUARE_LOCATION_ID": "LJC3JV2Z9SXP6",
     "SQUARE_WEBHOOK_URL": "https://kiribati-connect.taimweromita505.workers.dev/api/payments/webhook",
-    "PAYMENT_PROVIDER": "paypal"
+    "PAYMENT_PROVIDER": "paypal",
+    "PLAY_BILLING_ENABLED": "false",
+    "PLAY_ALLOW_TEST_PURCHASES": "false",
+    "PLAY_IDENTITY_JWKS": "{\"keys\":[{\"kty\":\"RSA\",\"n\":\"1a7_EkkfngvxtunhlWYqpYVJ4Q2dF2muE1Xy2nKesBwk6QgI-JLDEi6qXz57pwTe5Mb8NW7BYlpxDBc9Ct5U5LlUVmtb6wju3owGjlUA0jjNwInLEP-gy8PG3ry9o-a7g55j79ROFfB857W9X04Vk7YuVa58PlqMFAEdIunF38k-ngV8t1NLEEn9e9frxrbQA3jebjo6c-8t3hrh0Ovp8wpKUeGBVhmBQqCrcTryC9MFew0YcYLfnAmjIvjEvN9v3TebCt0dBcT8l-SkQiHXuetjr3e2aGziBytie_sVzwGFachu2r8CwyktNcnSoaOq-zQoV-dE15oxQ-T4yIbtP-lCyRWBA6TsHj0I0TBHgx-OhHq1AojjNmX51T0BziR0C85ZcV9ovAFNGldDgRHvgMpMiSmsdHb_EzGt4mvHQLW5V_Gja4pJddt4oPQutsOabRLaISmnWRzZ9iPAkmDcqlEDuR-9kK5k4GeV6sFbgTpoNllzSP_9VefAwy2MZPWD\",\"e\":\"AQAB\",\"kid\":\"c289a8d3-7ff0-44cc-a853-7a282108f121\",\"alg\":\"RS256\",\"use\":\"sig\"}]}",
+    "PLAY_WIF_AUDIENCE": "//iam.googleapis.com/projects/810229818604/locations/global/workloadIdentityPools/kiribati-connect/providers/cloudflare",
+    "PLAY_REVIEW_ACCESS_ENABLED": "true"
   },
   "ai": {
     "binding": "AI"

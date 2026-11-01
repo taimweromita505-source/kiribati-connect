@@ -1,0 +1,11 @@
+(()=>{
+ window.isPlayApp=/KiribatiConnectAndroid\//.test(navigator.userAgent);if(!window.isPlayApp)return;
+ window.kcPlayPrices={};const checking=new Set();
+ const notify=message=>{if(typeof toast==='function')toast(message);else console.info(message)};
+ const native=message=>{if(!window.KiribatiAndroid?.postMessage)throw Error('Update Android System WebView to use Google Play checkout.');window.KiribatiAndroid.postMessage(JSON.stringify(message))};
+ window.kcPlayBuy=async(kind,listingId)=>{const r=await fetch('/api/play/intent',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,listingId})}),data=await r.json();if(!r.ok)throw Error(data.error);if(data.paid){window.dispatchEvent(new Event('kc-purchase-verified'));return}native({type:'purchase',...data});};
+ window.addEventListener('kc-native',async event=>{const data=event.detail;if(!data||typeof data!=='object')return;if(data.type==='catalog'){window.kcPlayPrices=data.prices||{};return}if(data.type==='error'){notify(data.message);return}if(data.type!=='purchase'||typeof data.token!=='string'||checking.has(data.token))return;
+  checking.add(data.token);try{const r=await fetch('/api/play/verify',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:data.token})}),result=await r.json();if(!r.ok)throw Error(result.error);notify(result.paid?'Google Play payment confirmed.':'Payment is pending.');if(result.paid)window.dispatchEvent(new Event('kc-purchase-verified'))}catch(error){checking.delete(data.token);notify(error.message)}
+ });
+ window.addEventListener('DOMContentLoaded',()=>{try{native({type:'catalog'});native({type:'restore'})}catch{}const bar=document.createElement('div');bar.className='safety-actions';const restore=document.createElement('button');restore.type='button';restore.textContent='Restore Google Play purchases';restore.onclick=()=>{checking.clear();try{native({type:'restore'});notify('Checking pending Google Play purchases.')}catch(error){notify(error.message)}};bar.append(restore);document.querySelector('footer')?.before(bar);for(const a of document.querySelectorAll('a[href]'))if(/paypal\.com|square\.link|square\.site/.test(a.href))a.remove();});
+})();
