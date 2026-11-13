@@ -104,3 +104,21 @@ body.theme-dark .call-btn{background:#182835;color:#6faedf;border-color:#254157;
 body.theme-dark .sms-btn{background:#2e2612;color:#efc653;border-color:#483a1a;}
 body.theme-dark .mail-btn{background:#261b35;color:#c09ef0;border-color:#3f2d59;}
 body.theme-dark .download-card{background:#15231e;border-color:#243a32;}
+
+.listing-photo-container{position:relative;display:flex;align-items:center;justify-content:center;border-radius:12px;overflow:hidden;background:#edf2ea;margin:10px 0;}
+.listing-photo-container .listing-photo{width:100%;max-height:320px;object-fit:cover;border-radius:12px;display:block;}
+.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(22,63,58,0.75);color:#fff;border:0;border-radius:50%;width:34px;height:34px;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;padding:0;transition:background .2s;}
+.carousel-btn:hover{background:rgba(8,102,93,0.9);}
+.carousel-btn.prev-btn{left:8px;}
+.carousel-btn.next-btn{right:8px;}
+.photo-counter{position:absolute;bottom:8px;right:8px;background:rgba(22,63,58,0.8);color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;z-index:2;cursor:pointer;}
+.kc-lightbox{position:fixed;inset:0;background:rgba(10,24,22,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.kc-lightbox-img{max-width:92vw;max-height:82vh;object-fit:contain;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.5);}
+.kc-lightbox-close{position:absolute;top:18px;right:22px;background:none;border:0;color:#fff;font-size:36px;line-height:1;cursor:pointer;padding:6px 12px;border-radius:50%;}
+.kc-lightbox-caption{color:#e7eddf;font-size:13px;margin-top:14px;text-align:center;letter-spacing:0.5px;}
+.kc-lightbox-prev,.kc-lightbox-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.2);color:#fff;border:0;border-radius:50%;width:44px;height:44px;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s;}
+.kc-lightbox-prev:hover,.kc-lightbox-next:hover{background:rgba(255,255,255,0.4);}
+.kc-lightbox-prev{left:20px;}
+.kc-lightbox-next{right:20px;}
+.android-install-banner{background:#f0faef;border:1px solid #cce5cb;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:12px;color:#1d463d;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.install-apk-link{font-weight:700;color:var(--green);text-decoration:underline;}

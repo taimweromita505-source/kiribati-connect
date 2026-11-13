@@ -66,7 +66,7 @@ function render(){
   bottom.append(element('span','',x.island+' · '+(x.showcaseUrl?listingDate(x.updated_at||x.created_at):'Example only')),detail);
   card.append(top,element('h3','',x.title));
   if(x.employer)card.append(element('p','publisher-line',x.employer));
-  card.append(element('p','card-description',x.body));if(x.contact){const c=contactActions(x.contact);if(c)card.append(c)}card.append(bottom);
+  card.append(element('p','card-description',x.body));if(x.contact){const c=contactActions(x.contact,x);if(c)card.append(c)}card.append(bottom);
   const summary=listingSummary(x);
   if(summary){
    const badge=boatStatusBadge(x);
@@ -138,7 +138,7 @@ if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js').then(
 
 function matchesListingIsland(item,island){if(island==='All islands')return true;const members=[island,...($('#island').selectedOptions[0].dataset.members||'').split('|')];return members.includes(item.island)||members.includes(item.details?.destinationIsland)}
 
-function contactActions(contact){
+function contactActions(contact,item){
  if(!contact||typeof contact!=='string')return null;
  const digits=contact.replace(/[^0-9]/g,'');
  let phone=null;
@@ -147,19 +147,34 @@ function contactActions(contact){
  }
  const emailMatch=contact.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
  const wrap=element('div','card-contact-actions');
+ let msg='Mauri!';
+ if(item){
+  if(item.category==='Boats'){
+   const dest=item.details?.destinationIsland?(' ('+item.island+' → '+item.details.destinationIsland+')'):'';
+   msg=`Mauri! I saw your boat schedule${dest} on Kiribati Connect. Are there seats available?`;
+  }else if(item.category==='Jobs'){
+   msg=`Mauri! I saw your job vacancy for "${item.title}" on Kiribati Connect and would like to ask about applying.`;
+  }else if(item.category==='Marketplace'){
+   const pr=item.details?.price!=null?` (${item.details.currency||'AUD'} $${Number(item.details.price).toFixed(2)})`:'';
+   msg=`Mauri! Is "${item.title}"${pr} listed on Kiribati Connect still available?`;
+  }else{
+   msg=`Mauri! I am inquiring about your Kiribati Connect notice "${item.title}".`;
+  }
+ }
  if(phone){
   const wa=element('a','contact-btn wa-btn','💬 WhatsApp');
-  wa.href='https://wa.me/'+phone;
+  wa.href='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);
   wa.target='_blank';wa.rel='noopener noreferrer';
   const call=element('a','contact-btn call-btn','📞 Call');
   call.href='tel:+'+phone;
   const sms=element('a','contact-btn sms-btn','✉️ SMS');
-  sms.href='sms:+'+phone;
+  sms.href='sms:+'+phone+'?body='+encodeURIComponent(msg);
   wrap.append(wa,call,sms);
  }
  if(emailMatch){
   const mail=element('a','contact-btn mail-btn','✉️ Email');
-  mail.href='mailto:'+emailMatch[0];
+  const subj=encodeURIComponent('Kiribati Connect: '+(item?.title||'Inquiry'));
+  mail.href='mailto:'+emailMatch[0]+'?subject='+subj+'&body='+encodeURIComponent(msg);
   wrap.append(mail);
  }
  return wrap.children.length?wrap:null;
@@ -172,6 +187,21 @@ const islandCoords={
  'Kiritimati':{lat:1.87,lon:-157.43,label:'Kiritimati Waters'},
  'default':{lat:1.33,lon:172.98,label:'Gilbert Islands'}
 };
+
+function estimateTarawaTide(date=new Date()){
+ const refEpoch=1767241800000;
+ const cycleMs=12.4206*3600*1000;
+ const diff=date.getTime()-refEpoch;
+ const phase=((diff%cycleMs)+cycleMs)%cycleMs;
+ const timeToNextHigh=cycleMs-phase;
+ const timeToNextLow=phase<cycleMs/2?(cycleMs/2-phase):(cycleMs*1.5-phase);
+ const nextHigh=new Date(date.getTime()+timeToNextHigh);
+ const nextLow=new Date(date.getTime()+timeToNextLow);
+ const fmt=d=>d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Pacific/Tarawa'});
+ const isRising=phase>cycleMs/2;
+ return {state:isRising?'🌊 Rising tide':'📉 Falling tide',high:fmt(nextHigh),low:fmt(nextLow)};
+}
+
 async function updateWeather(island){
  const box=$('#weather-box'),title=$('#weather-title'),info=$('#weather-info'),meta=$('#weather-meta');
  if(!box||!title)return;
@@ -182,20 +212,76 @@ async function updateWeather(island){
   const d=await res.json(),cur=d.current;
   const temp=Math.round(cur.temperature_2m),wind=Math.round(cur.wind_speed_10m);
   const condition=wind>28?'🔴 Rough winds — check with operator':wind>18?'🟡 Moderate breeze — check swell':'🟢 Gentle lagoon breeze — good crossing';
+  const tide=estimateTarawaTide();
   title.textContent=loc.label+' · '+temp+'°C';
   info.textContent='Wind: '+wind+' km/h · '+condition;
-  meta.textContent='Live marine & weather · Confirm with operator before wharf departure';
+  meta.textContent=tide.state+' · Next High: '+tide.high+' · Next Low: '+tide.low+' (Tarawa time)';
  }catch{}
 }
 
-function listingPhoto(item){
- const src=item.images?.[0]||(item.category==='Marketplace'?item.details?.photoUrl:null);if(!src)return null;
- const build=()=>{const photo=element('img','listing-photo');photo.src=src;photo.alt=item.title;photo.loading='lazy';photo.decoding='async';photo.referrerPolicy='no-referrer';photo.onerror=()=>photo.remove();return photo};
- if(!dataSaver)return build();
- const holder=element('button','secondary photo-saver','🖼 Tap to load photo (saves data)');holder.type='button';
- holder.onclick=()=>holder.replaceWith(build());return holder;
+let currentLightbox=null;
+function openLightbox(images,startIndex=0,title=''){
+ if(!images||!images.length)return;
+ let idx=startIndex;
+ const overlay=element('div','kc-lightbox');
+ overlay.setAttribute('role','dialog');
+ overlay.setAttribute('aria-label',title||'Photo preview');
+ const closeBtn=element('button','kc-lightbox-close','×');
+ closeBtn.setAttribute('aria-label','Close photo');
+ const img=element('img','kc-lightbox-img');
+ img.src=images[idx];img.alt=title;
+ const caption=element('div','kc-lightbox-caption',(title?title+' · ':'')+(idx+1)+'/'+images.length);
+ const update=()=>{img.src=images[idx];caption.textContent=(title?title+' · ':'')+(idx+1)+'/'+images.length;};
+ const prevBtn=element('button','kc-lightbox-prev','‹');
+ prevBtn.setAttribute('aria-label','Previous photo');
+ prevBtn.onclick=e=>{e.stopPropagation();idx=(idx-1+images.length)%images.length;update();};
+ const nextBtn=element('button','kc-lightbox-next','›');
+ nextBtn.setAttribute('aria-label','Next photo');
+ nextBtn.onclick=e=>{e.stopPropagation();idx=(idx+1)%images.length;update();};
+ const close=()=>{overlay.remove();window.removeEventListener('keydown',onKey);currentLightbox=null;};
+ const onKey=e=>{
+  if(e.key==='Escape')close();
+  if(e.key==='ArrowLeft'){idx=(idx-1+images.length)%images.length;update();}
+  if(e.key==='ArrowRight'){idx=(idx+1)%images.length;update();}
+ };
+ closeBtn.onclick=close;
+ overlay.onclick=e=>{if(e.target===overlay)close();};
+ window.addEventListener('keydown',onKey);
+ overlay.append(closeBtn,img,caption);
+ if(images.length>1)overlay.append(prevBtn,nextBtn);
+ document.body.append(overlay);
+ currentLightbox=overlay;
 }
+
+function listingPhoto(item){
+ const images=(item.images&&item.images.length)?item.images:(item.category==='Marketplace'&&item.details?.photoUrl?[item.details.photoUrl]:[]);
+ if(!images.length)return null;
+ const container=element('div','listing-photo-container');
+ let curIdx=0;
+ const build=()=>{
+  const photo=element('img','listing-photo');
+  photo.src=images[curIdx];photo.alt=item.title;photo.loading='lazy';photo.decoding='async';photo.referrerPolicy='no-referrer';
+  photo.onclick=()=>openLightbox(images,curIdx,item.title);photo.style.cursor='zoom-in';
+  if(images.length>1){
+   const badge=element('span','photo-counter',(curIdx+1)+'/'+images.length+' 🔍');
+   badge.onclick=e=>{e.stopPropagation();openLightbox(images,curIdx,item.title);};
+   const prev=element('button','carousel-btn prev-btn','‹');prev.type='button';
+   prev.onclick=e=>{e.stopPropagation();curIdx=(curIdx-1+images.length)%images.length;photo.src=images[curIdx];badge.textContent=(curIdx+1)+'/'+images.length+' 🔍';};
+   const next=element('button','carousel-btn next-btn','›');next.type='button';
+   next.onclick=e=>{e.stopPropagation();curIdx=(curIdx+1)%images.length;photo.src=images[curIdx];badge.textContent=(curIdx+1)+'/'+images.length+' 🔍';};
+   container.replaceChildren(prev,photo,next,badge);
+  }else{
+   container.replaceChildren(photo);
+  }
+  return container;
+ };
+ if(!dataSaver)return build();
+ const holder=element('button','secondary photo-saver','🖼 Tap to load photo'+(images.length>1?' ('+images.length+' photos)':'')+' (saves data)');
+ holder.type='button';holder.onclick=()=>holder.replaceWith(build());return holder;
+}
+
 function listingSourceLink(item){return null}
+
 function listingSummary(item){
  const details=item.details;
  if(!details)return item.category==='Jobs'&&item.closing_date?'Applications close '+item.closing_date:'';
@@ -207,7 +293,9 @@ function listingSummary(item){
  if(item.category==='Boats'){
   const badge=boatStatusBadge(item);
   const badgePrefix=badge?badge.text+' · ':'';
-  return badgePrefix+(details.boatStatus||'scheduled').toUpperCase()+' · '+item.island+' → '+details.destinationIsland+' · '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+')';
+  const depTime=details.departureUtc?new Date(details.departureUtc):new Date();
+  const tide=estimateTarawaTide(depTime);
+  return badgePrefix+(details.boatStatus||'scheduled').toUpperCase()+' · '+item.island+' → '+details.destinationIsland+' · '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+') · '+tide.state;
  }
  if(item.category==='Marketplace')return details.currency+' '+Number(details.price).toFixed(2)+' · '+details.availability;
  return '';
@@ -219,12 +307,32 @@ const alertsDialog=$('#alerts-dialog');
 if(alertsDialog){
  $('#alerts').onclick=()=>{alertsDialog.showModal();const p=read('kc-alert-prefs',{});if(p.email)$('#alert-email').value=p.email;if(p.boats!=null)$('#alert-boats').checked=p.boats;if(p.jobs!=null)$('#alert-jobs').checked=p.jobs;if(p.digest!=null)$('#alert-digest').checked=p.digest;};
  $('#close-alerts').onclick=()=>alertsDialog.close();
- $('#alerts-form').onsubmit=event=>{
+ $('#alerts-form').onsubmit=async event=>{
   event.preventDefault();
   const email=$('#alert-email').value.trim();
   const prefs={email,boats:$('#alert-boats').checked,jobs:$('#alert-jobs').checked,digest:$('#alert-digest').checked,island:$('#island')?.value||'All islands'};
   try{localStorage.setItem('kc-alert-prefs',JSON.stringify(prefs))}catch{}
-  alertsDialog.close();
-  toast('Alert preferences saved for '+prefs.island+'!');
+  const statusEl=$('#alerts-status');
+  if(statusEl)statusEl.textContent='Saving preferences…';
+  try{
+   const res=await fetch('/api/alerts/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(prefs)});
+   const data=await res.json();
+   if(!res.ok)throw Error(data.error||'Failed to save.');
+   toast('Subscribed to '+prefs.island+' updates & weekly digest!');
+   alertsDialog.close();
+  }catch(err){
+   toast('Preferences saved on device ('+err.message+').');
+   alertsDialog.close();
+  }finally{if(statusEl)statusEl.textContent='';}
  };
+}
+
+if(typeof navigator!=='undefined'&&navigator.userAgent?.includes('Android')&&!navigator.userAgent?.includes('KiribatiConnectAndroid')&&!$('#android-banner')){
+ const hero=$('.hero>div:first-child');
+ if(hero){
+  const banner=element('div','android-install-banner');
+  banner.id='android-banner';
+  banner.innerHTML='⚡ <b>Android App</b>: Faster offline feed & home screen widget. <a href="/download/kiribati-connect.apk" class="install-apk-link">Download APK (v1.2.0) ↓</a>';
+  hero.append(banner);
+ }
 }

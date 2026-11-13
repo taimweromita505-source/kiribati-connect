@@ -9,6 +9,7 @@ import {handleSafety} from './safety.mjs';
 import {handleAssistant} from './assistant.mjs';
 import {handleRatings} from './ratings.mjs';
 import {handleMembership,captureMembership} from './membership.mjs';
+import {handleAlerts,sendWeeklyDigests} from './alerts.mjs';
 const security={'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: blob:; connect-src 'self'; base-uri 'self'; form-action 'self' https://square.link https://checkout.square.site https://www.paypal.com https://www.sandbox.paypal.com; frame-ancestors 'none'"};
 export default {
  async fetch(request,env,ctx){try{
@@ -20,9 +21,10 @@ export default {
    return new Response(obj.body,{headers:{...security,'Content-Type':'application/vnd.android.package-archive','Content-Disposition':'attachment; filename="kiribati-connect.apk"','Cache-Control':'public, max-age=3600'}});
   }
   if(path==='/api/app/latest.json'){
-   return reply({version:'1.1.0',versionCode:2,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Direct web distribution with home screen widget, offline feed, and lagoon swell.'},200,{'Cache-Control':'public, max-age=600'});
+   return reply({version:'1.2.0',versionCode:3,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Added lagoon tide times, photo carousel & lightbox, in-app auto-update checker, pre-filled WhatsApp templates, and weekly island digests.'},200,{'Cache-Control':'public, max-age=600'});
   }
   if(path.startsWith('/api/play/identity/'))return identityMetadata(request,env);
+  if(path.startsWith('/api/alerts/'))return await handleAlerts(request,env);
   if(path.startsWith('/api/')){
    if(!env.DB||!env.AUTH_PEPPER)return reply({error:'The notice board is temporarily unavailable.'},503);
    const user=await getUser(request,env.DB);
@@ -57,5 +59,5 @@ export default {
   const asset=assets[key];if(!asset)return new Response('Not found',{status:404,headers:security});
   return new Response(request.method==='HEAD'?null:asset.body,{headers:{...security,'Content-Type':asset.type,'Cache-Control':'no-cache'}});
  }catch(error){console.error(JSON.stringify({event:'request_failed',message:error instanceof Error?error.message:'Unknown error'}));return reply({error:'The app is temporarily unavailable. Please try again.'},503)}},
- async scheduled(event,env){await reconcilePlay(env);await env.DB.batch([env.DB.prepare('DELETE FROM sessions WHERE expires_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM auth_limits WHERE expires_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM safety_reports WHERE created_at<?').bind(new Date(Date.now()-90*86400000).toISOString()),...['play_purchases','paypal_checkouts','listing_payments','payment_events'].map(table=>env.DB.prepare('DELETE FROM '+table+' WHERE created_at<?').bind(new Date(Date.now()-7*366*86400000).toISOString()))]);}
+ async scheduled(event,env){await reconcilePlay(env);await env.DB.batch([env.DB.prepare('DELETE FROM sessions WHERE expires_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM auth_limits WHERE expires_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM safety_reports WHERE created_at<?').bind(new Date(Date.now()-90*86400000).toISOString()),...['play_purchases','paypal_checkouts','listing_payments','payment_events'].map(table=>env.DB.prepare('DELETE FROM '+table+' WHERE created_at<?').bind(new Date(Date.now()-7*366*86400000).toISOString()))]);await sendWeeklyDigests(env);}
 };
