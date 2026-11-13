@@ -66,7 +66,7 @@ export async function handleMembership(request,env,user){
   const approval=order.links?.find(link=>['payer-action','approve'].includes(link.rel))?.href;if(!order.id||!approval)throw Error('PayPal did not return a checkout link.');
   const target=new URL(approval);if(target.protocol!=='https:'||target.hostname!==(live?'www.paypal.com':'www.sandbox.paypal.com')||target.username||target.password)throw Error('Unexpected PayPal destination.');
   await db.prepare("UPDATE kiri_checkouts SET order_id=?,approval_url=?,state='open' WHERE id=? AND state='creating'").bind(order.id,approval,attempt.id).run();
-  const email=env.PAYPAL_BUSINESS_EMAIL||'taimweromita505@gmail.com';
+  const email=env.PAYPAL_BUSINESS_EMAIL||'romitat924@gmail.com';
   const subUrl=`https://www.paypal.com/cgi-bin/webscr?cmd=_xclick-subscriptions&business=${encodeURIComponent(email)}&item_name=${encodeURIComponent('Kiribati Connect Kiri ' + data.plan + ' Membership')}&a3=${plan.price.toFixed(2)}&p3=1&t3=${data.plan==='monthly'?'M':'Y'}&src=1&currency_code=AUD&no_shipping=1&return=${encodeURIComponent(url.origin+'/?kiri=paid')}&cancel_return=${encodeURIComponent(url.origin+'/?kiri=cancelled')}`;
   return reply({url:approval,mode:env.PAYMENT_MODE,subscriptionUrl:subUrl});
  }catch{console.error(JSON.stringify({event:'kiri_checkout_failed'}));return reply({error:'Membership payment could not be completed. Reopen Kiri to check your membership before retrying.'},400)}

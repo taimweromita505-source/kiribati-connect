@@ -4,7 +4,7 @@ import {withDetails} from './listing-types.mjs';
 export const paypalReady=env=>((!!env.PAYPAL_CLIENT_ID&&!!env.PAYPAL_CLIENT_SECRET)||(!!env.PAYPAL_MERCHANT_ID&&!!env.PAYPAL_WEBHOOK_ID)||!!env.PAYPAL_BUSINESS_EMAIL)&&['test','live'].includes(env.PAYMENT_MODE);
 const base=env=>env.PAYMENT_MODE==='live'?'https://api-m.paypal.com':'https://api-m.sandbox.paypal.com';
 export function directCheckoutUrls(item, origin, env) {
- const email = env.PAYPAL_BUSINESS_EMAIL || 'taimweromita505@gmail.com';
+ const email = env.PAYPAL_BUSINESS_EMAIL || 'romitat924@gmail.com';
  const amount = item.amount || '1.00';
  const returnUrl = `${origin}/?checkout=paypal_done&id=${encodeURIComponent(item.id || '')}`;
  const cancelUrl = `${origin}/?checkout=cancelled`;
