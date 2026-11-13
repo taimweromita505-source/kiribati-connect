@@ -25,7 +25,20 @@ export default {
    // Roles come from the database, never from client emails or identity headers.
    const adminEmails=user?.role==='admin'?user.email:'';
    if(path.startsWith('/api/payments/paypal/')||path.startsWith('/api/payments/')&&path!=='/api/payments/webhook'&&env.PAYMENT_PROVIDER==='paypal')return handlePaypal(request,env,user,captureMembership);
-   return path.startsWith('/api/payments/')?handlePayments(request,env,user):handleHub(request,env,user);
+   const cache=typeof caches!=='undefined'?caches.default:null;
+   const cacheKey=(!user&&path==='/api/notices'&&request.method==='GET'&&cache)?new Request(url.toString(),{method:'GET'}):null;
+   if(cacheKey){
+    const hit=await cache.match(cacheKey);
+    if(hit)return hit;
+   }
+   const res=path.startsWith('/api/payments/')?await handlePayments(request,env,user):await handleHub(request,env,user);
+   if(cacheKey&&res.status===200&&cache){
+    ctx?.waitUntil?.(cache.put(cacheKey,res.clone()));
+   }
+   if(cache&&!['GET','HEAD'].includes(request.method)&&(path.startsWith('/api/notices')||path.startsWith('/api/moderation')||path.startsWith('/api/payments'))){
+    ctx?.waitUntil?.(cache.delete(new Request(new URL('/api/notices',url.origin).toString(),{method:'GET'})));
+   }
+   return res;
   }
   if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405,headers:security});
   const policyRoutes={'/privacy':'/privacy.html','/terms':'/terms.html','/delete-account':'/delete-account.html','/safety':'/safety.html'};
