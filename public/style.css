@@ -154,3 +154,15 @@ body.theme-dark .atoll-map-svg rect:first-child{fill:#0e1a15;}
 body.theme-dark .atoll-map-svg rect:nth-of-type(2){fill:#15261f;stroke:#233b31;}
 body.theme-dark .cargo-badge{background:#142c22;color:#5fd694;border-color:#1e4c32;}
 body.theme-dark .qr-box{background:#1a2b24;border-color:#284237;}
+.tag.Ships{background:#e0e7ff;color:#3730a3}
+.tag.Flights{background:#e0f2fe;color:#0369a1}
+body.theme-dark .tag.Ships{background:#1e1b4b;color:#a5b4fc;}
+body.theme-dark .tag.Flights{background:#082f49;color:#7dd3fc;}
+.flight-badge{display:inline-block;background:#e0f2fe;color:#0369a1;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;margin:6px 0;border:1px solid #bae6fd;}
+.ship-badge{display:inline-block;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;margin:6px 0;border:1px solid #c7d2fe;}
+body.theme-dark .flight-badge{background:#082f49;color:#7dd3fc;border-color:#075985;}
+body.theme-dark .ship-badge{background:#1e1b4b;color:#a5b4fc;border-color:#3730a3;}
+.active-flight-line{animation:flightDash 22s linear infinite;}
+@keyframes flightDash{to{stroke-dashoffset:-100;}}
+.active-ship-line{animation:shipDash 32s linear infinite;}
+@keyframes shipDash{to{stroke-dashoffset:-100;}}

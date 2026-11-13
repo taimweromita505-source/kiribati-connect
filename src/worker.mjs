@@ -21,7 +21,7 @@ export default {
    return new Response(obj.body,{headers:{...security,'Content-Type':'application/vnd.android.package-archive','Content-Disposition':'attachment; filename="kiribati-connect.apk"','Cache-Control':'public, max-age=3600'}});
   }
   if(path==='/api/app/latest.json'){
-   return reply({version:'1.2.0',versionCode:3,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Added lagoon tide times, photo carousel & lightbox, in-app auto-update checker, pre-filled WhatsApp templates, and weekly island digests.'},200,{'Cache-Control':'public, max-age=600'});
+   return reply({version:'1.3.0',versionCode:4,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Added Ships and Flights categories, interactive air and sea route map, vessel and air freight tracking, and quick status toggles.'},200,{'Cache-Control':'public, max-age=600'});
   }
   if(path.startsWith('/api/play/identity/'))return identityMetadata(request,env);
   if(path.startsWith('/api/alerts/'))return await handleAlerts(request,env);

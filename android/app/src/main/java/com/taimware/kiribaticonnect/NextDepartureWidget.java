@@ -76,13 +76,15 @@ public class NextDepartureWidget extends AppWidgetProvider {
       if (item == null) continue;
       String category = item.optString("category");
       JSONObject details = item.optJSONObject("details");
-      if ("Boats".equals(category) && details != null && !"cancelled".equals(details.optString("boatStatus"))) {
+      boolean isTransport = "Boats".equals(category) || "Ships".equals(category) || "Flights".equals(category);
+      if (isTransport && details != null && !"cancelled".equals(details.optString("boatStatus"))) {
         try {
           int offset = details.optInt("utcOffset", 12);
           long when = LocalDateTime.parse(details.optString("departureLocal")).toInstant(ZoneOffset.ofHours(offset)).toEpochMilli();
           if (when > now && when < bestTime) {
             bestTime = when;
-            boat = item.optString("island") + " \u2192 " + details.optString("destinationIsland") + " \u00B7 " + details.optString("departureLocal").replace('T', ' ');
+            String icon = "Flights".equals(category) ? "\u2708\uFE0F " : "Ships".equals(category) ? "\uD83D\uDEA2 " : "\u26F5 ";
+            boat = icon + item.optString("island") + " \u2192 " + details.optString("destinationIsland") + " \u00B7 " + details.optString("departureLocal").replace('T', ' ');
           }
         } catch (Exception ignored) { }
       } else if ("Jobs".equals(category) && job == null) {

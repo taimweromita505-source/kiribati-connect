@@ -25,7 +25,7 @@ export async function fulfillPaypal(db,order,env,eventId){
  const now=new Date().toISOString();
  await db.batch([
   db.prepare("UPDATE paypal_checkouts SET state='paid',capture_id=?,paid_at=COALESCE(paid_at,?) WHERE id=? AND (capture_id IS NULL OR capture_id=?)").bind(capture.id,now,attempt.id,capture.id),
-  db.prepare("UPDATE notices SET payment_state='paid',paid_at=COALESCE(paid_at,?),status=CASE WHEN status='draft' AND (expires_at IS NULL OR expires_at>?) AND (category!='Boats' OR json_extract(details_json,'$.boatStatus')='cancelled' OR json_extract(details_json,'$.departureUtc')>?) THEN 'approved' ELSE status END,updated_at=?,version=version+1 WHERE id=? AND author_id=? AND payment_state='unpaid' AND EXISTS(SELECT 1 FROM paypal_checkouts WHERE id=? AND state='paid' AND capture_id=?)").bind(now,now,now,now,attempt.listing_id,attempt.user_id,attempt.id,capture.id),
+  db.prepare("UPDATE notices SET payment_state='paid',paid_at=COALESCE(paid_at,?),status=CASE WHEN status='draft' AND (expires_at IS NULL OR expires_at>?) AND (category NOT IN ('Boats','Ships','Flights') OR json_extract(details_json,'$.boatStatus')='cancelled' OR json_extract(details_json,'$.departureUtc')>?) THEN 'approved' ELSE status END,updated_at=?,version=version+1 WHERE id=? AND author_id=? AND payment_state='unpaid' AND EXISTS(SELECT 1 FROM paypal_checkouts WHERE id=? AND state='paid' AND capture_id=?)").bind(now,now,now,now,attempt.listing_id,attempt.user_id,attempt.id,capture.id),
   db.prepare('INSERT OR IGNORE INTO payment_events(id,event_type,created_at) VALUES(?,?,?)').bind(eventId||'paypal-capture-'+capture.id,'paypal.capture.completed',now)
  ]);return true;
 }

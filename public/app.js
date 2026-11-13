@@ -1,5 +1,5 @@
-const $=s=>document.querySelector(s);const categories=['All updates','Jobs','Boats','Community','Marketplace'];const icons=['⌂','↗','≈','☷','▧'];let view='All updates',savedOnly=false;function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}let saved=read('kc-saved',[]),notices=read('kc-approved-v5',[]);function persist(){try{localStorage.setItem('kc-saved',JSON.stringify(saved));localStorage.setItem('kc-notices',JSON.stringify(notices))}catch{toast('Device storage is unavailable. Changes last for this session.')}}
-const samples=[{id:'c1',category:'Community',title:'A cleaner shore starts with us',body:'Join a community beach clean-up and help keep our lagoon beautiful. Bring a reusable bottle and a friend.',island:'South Tarawa',source:'Community board · Sample',detail:'Example notice only. A real event would include an organiser, verified date, meeting point, and contact details.'},{id:'j1',category:'Jobs',title:'Community outreach assistant',body:'A sample opportunity for someone who enjoys working with people and supporting local projects.',island:'South Tarawa',source:'Job board · Sample',detail:'Example vacancy only; no employer or open position is represented. Real listings need an employer, closing date, pay details, and an application contact.'},{id:'b1',category:'Boats',title:'Tarawa → Abaiang',body:'Sample departure · 7:00 AM · Passenger service. A simple place to find your next island connection.',island:'Abaiang',source:'Boat schedules · Unverified sample',detail:'No actual sailing is confirmed. Before travelling, verify departure date, port, fares, availability, weather, and last-minute changes directly with the operator.'},{id:'m1',category:'Marketplace',title:'Locally made woven baskets',body:'A preview of a local marketplace: handmade goods, useful finds, and connections close to home.',island:'North Tarawa',source:'Marketplace · Sample',detail:'Example listing only. There is no item for sale or seller to contact in this prototype.'},{id:'b2',category:'Boats',title:'Tarawa → Maiana',body:'Sample departure · 9:30 AM · Check the latest operator update before heading to the wharf.',island:'Maiana',source:'Boat schedules · Unverified sample',detail:'Illustrative schedule only. No departure date or real operator is connected.'},{id:'c2',category:'Community',title:'A space for Kiritimati community news',body:'Share local events, practical updates, and opportunities from your island.',island:'Kiritimati',source:'Community board · Sample',detail:'Example only. Sign in and choose Create a listing to save your own private draft.'}];
+const $=s=>document.querySelector(s);const categories=['All updates','Boats','Ships','Flights','Jobs','Community','Marketplace'];const icons=['⌂','⛵','🚢','✈️','💼','☷','▧'];let view='All updates',savedOnly=false;function read(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}let saved=read('kc-saved',[]),notices=read('kc-approved-v5',[]);function persist(){try{localStorage.setItem('kc-saved',JSON.stringify(saved));localStorage.setItem('kc-notices',JSON.stringify(notices))}catch{toast('Device storage is unavailable. Changes last for this session.')}}
+const samples=[{id:'c1',category:'Community',title:'A cleaner shore starts with us',body:'Join a community beach clean-up and help keep our lagoon beautiful. Bring a reusable bottle and a friend.',island:'South Tarawa',source:'Community board · Sample',detail:'Example notice only. A real event would include an organiser, verified date, meeting point, and contact details.'},{id:'j1',category:'Jobs',title:'Community outreach assistant',body:'A sample opportunity for someone who enjoys working with people and supporting local projects.',island:'South Tarawa',source:'Job board · Sample',detail:'Example vacancy only; no employer or open position is represented. Real listings need an employer, closing date, pay details, and an application contact.'},{id:'b1',category:'Boats',title:'Tarawa → Abaiang',body:'Sample departure · 7:00 AM · Passenger service. A simple place to find your next island connection.',island:'Abaiang',source:'Boat schedules · Unverified sample',detail:'No actual sailing is confirmed. Before travelling, verify departure date, port, fares, availability, weather, and last-minute changes directly with the operator.'},{id:'s1',category:'Ships',title:'KSSL MV Moamoa · Central & Southern Atolls Voyage',body:'Inter-island voyage · Betio Port (Tarawa) → Abemama, Nonouti, Tabiteuea. Passenger cabins, deck passage, and container/loose cargo bookings open at Betio Wharf.',island:'South Tarawa',source:'Ship voyage · Sample',employer:'Kiribati Shipping Services Ltd',detail:'Sample shipping voyage. Verify freight loading cut-offs, container bookings, and boarding tickets directly with KSSL Betio Wharf office.'},{id:'f1',category:'Flights',title:'Air Kiribati · Bonriki (Tarawa) → Cassidy (Kiritimati)',body:'Scheduled domestic air service · Bonriki International Airport → Cassidy Airport. 15 kg checked luggage allowance + 5 kg carry-on.',island:'South Tarawa',source:'Flight schedule · Sample',employer:'Air Kiribati',detail:'Sample flight connection. Check-in counters close 45 minutes prior to departure. Confirm bookings and baggage limits with Air Kiribati.'},{id:'m1',category:'Marketplace',title:'Locally made woven baskets',body:'A preview of a local marketplace: handmade goods, useful finds, and connections close to home.',island:'North Tarawa',source:'Marketplace · Sample',detail:'Example listing only. There is no item for sale or seller to contact in this prototype.'},{id:'b2',category:'Boats',title:'Tarawa → Maiana',body:'Sample departure · 9:30 AM · Check the latest operator update before heading to the wharf.',island:'Maiana',source:'Boat schedules · Unverified sample',detail:'Illustrative schedule only. No departure date or real operator is connected.'},{id:'c2',category:'Community',title:'A space for Kiritimati community news',body:'Share local events, practical updates, and opportunities from your island.',island:'Kiritimati',source:'Community board · Sample',detail:'Example only. Sign in and choose Create a listing to save your own private draft.'}];
 function toast(message){$('#toast').textContent=message;$('#toast').style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').style.display='none',5000)}function choose(next){if(location.pathname.startsWith('/listing/')){location.assign('/?category='+encodeURIComponent(next));return}view=next;savedOnly=false;$('#saved').textContent='♡ Saved';render()}function element(tag,cls,text){let e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e}
 
 let myIsland=localStorage.getItem('kc-my-island')||'';
@@ -27,24 +27,24 @@ function updateSyncedTime(){
 window.updateSyncedTime=updateSyncedTime;
 
 function boatStatusBadge(item){
- if(item.category!=='Boats')return null;
- const details=item.details||{},status=details.boatStatus||'scheduled';
+ if(!['Boats','Ships','Flights'].includes(item.category))return null;
+ const details=item.details||{},status=details.flightStatus||details.shipStatus||details.boatStatus||'scheduled';
  const refDate=item.confirmed_at||item.updated_at||item.created_at;
  const ageDays=refDate?(Date.now()-Date.parse(refDate))/86400000:999;
  const depDate=details.departureLocal?Date.parse(details.departureLocal):null;
  if(status==='cancelled'||(depDate&&depDate<Date.now())||ageDays>7){
   return {cls:'outdated',text:'🔴 Outdated (>7d)'};
  }
- if(details.boatConfirmed||item.source_verified){
+ if(details.boatConfirmed||details.shipConfirmed||details.flightConfirmed||item.source_verified){
   return {cls:'verified',text:'🟢 Verified'};
  }
  return {cls:'community-checked',text:'🟡 Community-checked'};
 }
 
 function render(){
- $('#nav').replaceChildren(...categories.map((c,i)=>{let b=element('button',view===c?'active':'');b.append(element('span','',icons[i]),document.createTextNode(c==='All updates'?'Home':c==='Boats'?'Boat schedules':c));b.onclick=()=>choose(c);b.setAttribute('aria-pressed',view===c);return b}));
+ $('#nav').replaceChildren(...categories.map((c,i)=>{let b=element('button',view===c?'active':'');b.append(element('span','',icons[i]),document.createTextNode(c==='All updates'?'Home':c==='Boats'?'Boats':c==='Ships'?'Ship voyages':c==='Flights'?'Flights':c));b.onclick=()=>choose(c);b.setAttribute('aria-pressed',view===c);return b}));
  $('#filters').replaceChildren(...categories.map(c=>{let b=element('button',view===c?'active':'',c);b.onclick=()=>choose(c);b.setAttribute('aria-pressed',view===c);return b}));
- $('#heading').textContent=savedOnly?'Your saved updates':view==='All updates'?'The latest in your community':view==='Boats'?'Find your next island crossing':view==='Jobs'?'Opportunities close to home':view+' updates';
+ $('#heading').textContent=savedOnly?'Your saved updates':view==='All updates'?'The latest in your community':view==='Boats'?'Find your next lagoon crossing':view==='Ships'?'Inter-island shipping & cargo voyages':view==='Flights'?'Domestic & regional flight schedules':view==='Jobs'?'Opportunities close to home':view+' updates';
  let q=$('#search').value.toLowerCase(),island=$('#island').value;
  let rows=[...notices,...($('#show-examples')?.checked?samples:[])].filter(x=>(!x.expires_at||Date.parse(x.expires_at)>Date.now())&&(view==='All updates'||x.category===view)&&matchesListingIsland(x,island)&&(!savedOnly||saved.includes(x.id))&&[x.title,x.body,x.island,x.employer||'',JSON.stringify(x.details||{})].join(' ').toLowerCase().includes(q));
  if(reliableOnly)rows=rows.filter(x=>{const r=ratingFor(x);return (r.op||r.own)?.avg>=4}).sort((a,b)=>{const ra=ratingFor(a),rb=ratingFor(b);return (rb.op||rb.own).avg-(ra.op||ra.own).avg});
@@ -54,7 +54,7 @@ function render(){
   save.setAttribute('aria-label',(saved.includes(x.id)?'Unsave ':'Save ')+x.title);
   save.onclick=()=>{saved=saved.includes(x.id)?saved.filter(id=>id!==x.id):[...saved,x.id];persist();render()};
   let tagText=x.category;
-  if(x.status==='closed')tagText+=(x.category==='Boats'?' · DEPARTED 🚢':x.category==='Jobs'?' · FILLED ✓':' · SOLD 🏷️');
+  if(x.status==='closed')tagText+=(x.category==='Boats'?' · DEPARTED ⛵':x.category==='Ships'?' · DEPARTED 🚢':x.category==='Flights'?' · DEPARTED ✈️':x.category==='Jobs'?' · FILLED ✓':' · SOLD 🏷️');
   top.append(element('span','tag '+x.category+(x.status==='closed'?' status-closed':''),tagText),save);
   if(!x.showcaseUrl)top.insertBefore(element('span','example-badge','EXAMPLE'),save);
   let bottom=element('div','card-bottom');
@@ -78,9 +78,15 @@ function render(){
    const highlightCls='listing-highlight '+(x.details?.boatStatus||'')+(badge?' status-'+badge.cls:'');
    card.insertBefore(element('p',highlightCls,summary),card.querySelector('p'));
   }
-  if(x.category==='Boats'&&x.details?.cargoAccepted){
-   const cargoText='📦 Cargo: '+(x.details.cargoStatus==='limited'?'Limited space':'Accepted')+(x.details.cargoRate?' ('+x.details.cargoRate+')':'');
+  if(['Boats','Ships','Flights'].includes(x.category)&&x.details?.cargoAccepted){
+   const cargoText=(x.category==='Flights'?'✈️ Air freight: ':'📦 Cargo: ')+(x.details.cargoStatus==='limited'?'Limited space':'Accepted')+(x.details.cargoRate?' ('+x.details.cargoRate+')':'');
    card.insertBefore(element('p','cargo-badge',cargoText),card.querySelector('p'));
+  }
+  if(x.category==='Flights'&&x.details?.flightNumber){
+   card.insertBefore(element('p','flight-badge','✈️ Flight '+x.details.flightNumber+(x.details.baggageAllowance?' · Baggage: '+x.details.baggageAllowance:'')),card.querySelector('p'));
+  }
+  if(x.category==='Ships'&&x.details?.vesselName){
+   card.insertBefore(element('p','ship-badge','🚢 Vessel: '+x.details.vesselName),card.querySelector('p'));
   }
   const photo=listingPhoto(x);
   if(photo)card.insertBefore(photo,bottom);
@@ -161,6 +167,13 @@ function contactActions(contact,item){
   if(item.category==='Boats'){
    const dest=item.details?.destinationIsland?(' ('+item.island+' → '+item.details.destinationIsland+')'):'';
    msg=`Mauri! I saw your boat schedule${dest} on Kiribati Connect. Are there seats available?`;
+  }else if(item.category==='Ships'){
+   const dest=item.details?.destinationIsland?(' ('+item.island+' → '+item.details.destinationIsland+')'):'';
+   msg=`Mauri! I saw your ship voyage${dest} on Kiribati Connect. I would like to ask about passenger tickets and cargo space.`;
+  }else if(item.category==='Flights'){
+   const dest=item.details?.destinationIsland?(' ('+item.island+' → '+item.details.destinationIsland+')'):'';
+   const fl=item.details?.flightNumber?(' Flight '+item.details.flightNumber):'';
+   msg=`Mauri! I saw your scheduled flight${fl}${dest} on Kiribati Connect. Are seats available to book?`;
   }else if(item.category==='Jobs'){
    msg=`Mauri! I saw your job vacancy for "${item.title}" on Kiribati Connect and would like to ask about applying.`;
   }else if(item.category==='Marketplace'){
@@ -299,12 +312,14 @@ function listingSummary(item){
   const lastConf=item.confirmed_at||item.updated_at;
   return closing+(lastConf?' · Checked '+listingDate(lastConf):'');
  }
- if(item.category==='Boats'){
+ if(['Boats','Ships','Flights'].includes(item.category)){
   const badge=boatStatusBadge(item);
   const badgePrefix=badge?badge.text+' · ':'';
   const depTime=details.departureUtc?new Date(details.departureUtc):new Date();
-  const tide=estimateTarawaTide(depTime);
-  return badgePrefix+(details.boatStatus||'scheduled').toUpperCase()+' · '+item.island+' → '+details.destinationIsland+' · '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+') · '+tide.state;
+  const tideInfo=item.category!=='Flights'?(' · '+estimateTarawaTide(depTime).state):'';
+  const status=(details.flightStatus||details.shipStatus||details.boatStatus||'scheduled').toUpperCase();
+  const flightNo=item.category==='Flights'&&details.flightNumber?(' [Flight '+details.flightNumber+'] '):'';
+  return badgePrefix+status+flightNo+' · '+item.island+' → '+details.destinationIsland+' · '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+')'+tideInfo;
  }
  if(item.category==='Marketplace')return details.currency+' '+Number(details.price).toFixed(2)+' · '+details.availability;
  return '';
@@ -375,17 +390,21 @@ function renderIslandMap(){
  const currentSelected=$('#island')?.value||'All islands';
  const activeRoutes=[];
  for(const it of notices){
-  if(it.category==='Boats'&&it.details?.destinationIsland){
+  if(['Boats','Ships','Flights'].includes(it.category)&&it.details?.destinationIsland){
    const from=mapIslands.find(m=>m.name===it.island);
    const to=mapIslands.find(m=>m.name===it.details.destinationIsland);
-   if(from&&to)activeRoutes.push({from,to,status:it.details.boatStatus||'scheduled'});
+   const status=it.details.flightStatus||it.details.shipStatus||it.details.boatStatus||'scheduled';
+   if(from&&to)activeRoutes.push({from,to,status,type:it.category,title:it.title});
   }
  }
- let svg='<svg viewBox="0 0 490 380" class="atoll-map-svg" role="img" aria-label="Interactive Kiribati Island Map"><defs><radialGradient id="lagoon-grad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#99d6c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#08665d" stop-opacity="0.1"/></radialGradient></defs><rect width="100%" height="100%" rx="14" fill="#f1f7f4"/><rect x="365" y="15" width="115" height="350" rx="10" fill="#eaf2ee" stroke="#cfe0d7" stroke-dasharray="4,4"/><text x="422" y="32" text-anchor="middle" font-size="9" font-weight="700" fill="#526f65">LINE & PHOENIX</text><text x="35" y="24" font-size="10" font-weight="700" fill="#526f65">GILBERT GROUP (TUNGARU)</text>';
+ let svg='<svg viewBox="0 0 490 380" class="atoll-map-svg" role="img" aria-label="Interactive Kiribati Island Map"><defs><radialGradient id="lagoon-grad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#99d6c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#08665d" stop-opacity="0.1"/></radialGradient></defs><rect width="100%" height="100%" rx="14" fill="#f1f7f4"/><rect x="365" y="15" width="115" height="350" rx="10" fill="#eaf2ee" stroke="#cfe0d7" stroke-dasharray="4,4"/><text x="422" y="32" text-anchor="middle" font-size="9" font-weight="700" fill="#526f65">LINE & PHOENIX</text><text x="35" y="24" font-size="10" font-weight="700" fill="#526f65">GILBERT GROUP (TUNGARU)</text><g transform="translate(35, 368)"><text font-size="9" fill="#526f65">Routes: <tspan fill="#08665d">⛵ Boats</tspan> · <tspan fill="#1e40af">🚢 Ships</tspan> · <tspan fill="#0284c7">✈️ Flights</tspan></text></g>';
  for(const r of activeRoutes){
-  const mx=(r.from.x+r.to.x)/2+(r.from.y-r.to.y)*0.15,my=(r.from.y+r.to.y)/2+(r.to.x-r.from.x)*0.15;
-  const strokeColor=r.status==='delayed'?'#d97706':r.status==='cancelled'?'#dc2626':'#08665d';
-  svg+='<path d="M '+r.from.x+' '+r.from.y+' Q '+mx+' '+my+' '+r.to.x+' '+r.to.y+'" class="active-route-line" stroke="'+strokeColor+'" stroke-dasharray="5,4" fill="none" stroke-width="2.2" opacity="0.85"/>';
+  const curvature=r.type==='Flights'?-0.32:r.type==='Ships'?0.22:0.12;
+  const mx=(r.from.x+r.to.x)/2+(r.from.y-r.to.y)*curvature,my=(r.from.y+r.to.y)/2+(r.to.x-r.from.x)*curvature;
+  const strokeColor=r.status==='delayed'?'#d97706':r.status==='cancelled'?'#dc2626':r.type==='Flights'?'#0284c7':r.type==='Ships'?'#1e40af':'#08665d';
+  const dashArray=r.type==='Flights'?'4,4':r.type==='Ships'?'6,3':'5,4';
+  const strokeWidth=r.type==='Flights'?'2.0':'2.3';
+  svg+='<path d="M '+r.from.x+' '+r.from.y+' Q '+mx+' '+my+' '+r.to.x+' '+r.to.y+'" class="active-route-line active-'+r.type.toLowerCase()+'-line" stroke="'+strokeColor+'" stroke-dasharray="'+dashArray+'" fill="none" stroke-width="'+strokeWidth+'" opacity="0.85"><title>'+r.type+': '+r.from.name+' → '+r.to.name+'</title></path>';
  }
  for(const m of mapIslands){
   const isSelected=currentSelected===m.name;
