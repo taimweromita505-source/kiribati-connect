@@ -1,5 +1,5 @@
 plugins { id 'com.android.application' }
-android { namespace 'com.taimware.kiribaticonnect'; compileSdk 37; defaultConfig { applicationId 'com.taimware.kiribaticonnect'; minSdk 26; targetSdk 36; versionCode 4; versionName '1.3.0' }; buildFeatures { buildConfig true }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }; buildTypes { release { minifyEnabled false } } }
+android { namespace 'com.taimware.kiribaticonnect'; compileSdk 37; defaultConfig { applicationId 'com.taimware.kiribaticonnect'; minSdk 26; targetSdk 36; versionCode 5; versionName '1.4.0' }; buildFeatures { buildConfig true }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }; buildTypes { release { minifyEnabled false } } }
 dependencies { implementation 'androidx.webkit:webkit:1.15.0'; implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'; implementation 'com.android.billingclient:billing:9.1.0' }
 
 android { signingConfigs { release { def keyPath=System.getenv('KC_KEYSTORE_PATH'); if(keyPath) { storeFile file(keyPath); storePassword System.getenv('KC_STORE_PASSWORD'); keyAlias 'kiribati-upload'; keyPassword System.getenv('KC_KEY_PASSWORD') } } }; buildTypes { release { if(System.getenv('KC_KEYSTORE_PATH')) signingConfig signingConfigs.release } } }
