@@ -27,6 +27,20 @@ test('boats reject invalid routes, dates, confirmations and money; cancelled pas
  const cancelled=normalizeListing({...boat(),boatStatus:'cancelled',departureLocal:'2026-10-30T01:00'},now);assert.equal(cancelled.expires_at,'2026-10-30T11:00:00.000Z');
  assert.throws(()=>normalizeListing({...boat(),boatStatus:'cancelled',departureLocal:'2020-01-01T09:00'},now));
 });
+test('boats support cargo capacity, cargo status, and departed closing status',async()=>{
+ const db=database();
+ const input={...boat(),cargoAccepted:true,cargoStatus:'limited',cargoTypes:'Coolers and rice sacks',cargoRate:'AUD $5/sack'};
+ assert.equal((await call(db,'notices','POST',input)).status,201);
+ const item=(await(await call(db,'notices/mine')).json()).notices[0];
+ assert.equal(item.details.cargoAccepted,true);
+ assert.equal(item.details.cargoStatus,'limited');
+ assert.match(item.detail,/Cargo: Limited space/);
+ assert.match(item.detail,/Coolers and rice sacks/);
+ assert.equal((await call(db,'notices/'+input.submissionId+'/close','PUT',{version:1})).status,200);
+ const closed=(await(await call(db,'notices/mine')).json()).notices[0];
+ assert.equal(closed.status,'closed');
+ assert.match(closed.detail,/Sailing status: departed/);
+});
 test('government category is rejected and not supported',async()=>{
  const db=database();
  assert.throws(()=>normalizeListing({category:'Government',title:'Announce',body:'Details',island:'South Tarawa'},'2026-10-29T12:00:00.000Z'));

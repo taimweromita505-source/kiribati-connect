@@ -53,7 +53,9 @@ function render(){
   let card=element('article','card'),top=element('div','card-top'),save=element('button','save',saved.includes(x.id)?'♥':'♡');
   save.setAttribute('aria-label',(saved.includes(x.id)?'Unsave ':'Save ')+x.title);
   save.onclick=()=>{saved=saved.includes(x.id)?saved.filter(id=>id!==x.id):[...saved,x.id];persist();render()};
-  top.append(element('span','tag '+x.category,x.category),save);
+  let tagText=x.category;
+  if(x.status==='closed')tagText+=(x.category==='Boats'?' · DEPARTED 🚢':x.category==='Jobs'?' · FILLED ✓':' · SOLD 🏷️');
+  top.append(element('span','tag '+x.category+(x.status==='closed'?' status-closed':''),tagText),save);
   if(!x.showcaseUrl)top.insertBefore(element('span','example-badge','EXAMPLE'),save);
   let bottom=element('div','card-bottom');
   if(x.showcaseUrl){const showcase=element('a','source-link','Open listing & comments ↗');showcase.href=x.showcaseUrl;showcase.classList.add('card-link');card.append(showcase)}
@@ -63,7 +65,10 @@ function render(){
    if(old){old.remove();detail.setAttribute('aria-expanded','false');detail.textContent='View details ↗'}
    else{const block=element('div','detail-text');block.append(element('p','',x.detail||'Example listing.'));const sourceLink=listingSourceLink(x);if(sourceLink)block.append(sourceLink);card.append(block);detail.setAttribute('aria-expanded','true');detail.textContent='Close details ↑'}
   };
-  bottom.append(element('span','',x.island+' · '+(x.showcaseUrl?listingDate(x.updated_at||x.created_at):'Example only')),detail);
+  const shareBtn=element('button','share-card-btn','Share ↗');
+  shareBtn.setAttribute('aria-label','Share '+x.title);
+  shareBtn.onclick=e=>{e.stopPropagation();openShareModal(x)};
+  bottom.append(element('span','',x.island+' · '+(x.showcaseUrl?listingDate(x.updated_at||x.created_at):'Example only')),shareBtn,detail);
   card.append(top,element('h3','',x.title));
   if(x.employer)card.append(element('p','publisher-line',x.employer));
   card.append(element('p','card-description',x.body));if(x.contact){const c=contactActions(x.contact,x);if(c)card.append(c)}card.append(bottom);
@@ -73,6 +78,10 @@ function render(){
    const highlightCls='listing-highlight '+(x.details?.boatStatus||'')+(badge?' status-'+badge.cls:'');
    card.insertBefore(element('p',highlightCls,summary),card.querySelector('p'));
   }
+  if(x.category==='Boats'&&x.details?.cargoAccepted){
+   const cargoText='📦 Cargo: '+(x.details.cargoStatus==='limited'?'Limited space':'Accepted')+(x.details.cargoRate?' ('+x.details.cargoRate+')':'');
+   card.insertBefore(element('p','cargo-badge',cargoText),card.querySelector('p'));
+  }
   const photo=listingPhoto(x);
   if(photo)card.insertBefore(photo,bottom);
   const rate=ratingFor(x),shown=rate.op||rate.own;
@@ -80,7 +89,7 @@ function render(){
   return card;
  }));
  if(!rows.length)$('#feed').append(element('p','empty','No listings here yet. Try another island, clear your search, or be the first to share something with your community.'));
- updateSyncedTime();
+ updateSyncedTime();renderIslandMap();
 }
 
 $('#show-examples').onchange=render;
@@ -336,3 +345,105 @@ if(typeof navigator!=='undefined'&&navigator.userAgent?.includes('Android')&&!na
   hero.append(banner);
  }
 }
+
+const mapIslands=[
+ {name:'Makin',x:50,y:35},
+ {name:'Butaritari',x:75,y:60},
+ {name:'Marakei',x:110,y:90},
+ {name:'Abaiang',x:125,y:120},
+ {name:'North Tarawa',x:145,y:140},
+ {name:'South Tarawa',x:140,y:165,hub:true},
+ {name:'Maiana',x:155,y:200},
+ {name:'Kuria',x:145,y:235},
+ {name:'Aranuka',x:180,y:245},
+ {name:'Abemama',x:205,y:220},
+ {name:'Nonouti',x:235,y:260},
+ {name:'Tabiteuea',x:265,y:290},
+ {name:'Beru',x:300,y:275},
+ {name:'Nikunau',x:335,y:260},
+ {name:'Onotoa',x:295,y:310},
+ {name:'Tamana',x:275,y:335},
+ {name:'Arorae',x:310,y:350},
+ {name:'Kiritimati',x:420,y:80},
+ {name:'Tabuaeran',x:420,y:125},
+ {name:'Kanton',x:420,y:220}
+];
+
+function renderIslandMap(){
+ const container=$('#island-map-container');
+ if(!container)return;
+ const currentSelected=$('#island')?.value||'All islands';
+ const activeRoutes=[];
+ for(const it of notices){
+  if(it.category==='Boats'&&it.details?.destinationIsland){
+   const from=mapIslands.find(m=>m.name===it.island);
+   const to=mapIslands.find(m=>m.name===it.details.destinationIsland);
+   if(from&&to)activeRoutes.push({from,to,status:it.details.boatStatus||'scheduled'});
+  }
+ }
+ let svg='<svg viewBox="0 0 490 380" class="atoll-map-svg" role="img" aria-label="Interactive Kiribati Island Map"><defs><radialGradient id="lagoon-grad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#99d6c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#08665d" stop-opacity="0.1"/></radialGradient></defs><rect width="100%" height="100%" rx="14" fill="#f1f7f4"/><rect x="365" y="15" width="115" height="350" rx="10" fill="#eaf2ee" stroke="#cfe0d7" stroke-dasharray="4,4"/><text x="422" y="32" text-anchor="middle" font-size="9" font-weight="700" fill="#526f65">LINE & PHOENIX</text><text x="35" y="24" font-size="10" font-weight="700" fill="#526f65">GILBERT GROUP (TUNGARU)</text>';
+ for(const r of activeRoutes){
+  const mx=(r.from.x+r.to.x)/2+(r.from.y-r.to.y)*0.15,my=(r.from.y+r.to.y)/2+(r.to.x-r.from.x)*0.15;
+  const strokeColor=r.status==='delayed'?'#d97706':r.status==='cancelled'?'#dc2626':'#08665d';
+  svg+='<path d="M '+r.from.x+' '+r.from.y+' Q '+mx+' '+my+' '+r.to.x+' '+r.to.y+'" class="active-route-line" stroke="'+strokeColor+'" stroke-dasharray="5,4" fill="none" stroke-width="2.2" opacity="0.85"/>';
+ }
+ for(const m of mapIslands){
+  const isSelected=currentSelected===m.name;
+  const count=notices.filter(n=>n.island===m.name||n.details?.destinationIsland===m.name).length;
+  const dotR=m.hub?8:(count?6:4.5);
+  const dotFill=isSelected?'#d97706':(m.hub?'#08665d':(count?'#107d70':'#739589'));
+  const textFill=isSelected?'#b45309':(m.hub?'#08665d':'#2b473f');
+  const fontWeight=isSelected||m.hub?'bold':'normal';
+  const labelY=m.y+(m.x>380?12:-7);
+  const textAnchor=m.x>380?'middle':(m.x<100?'start':'middle');
+  svg+='<g class="map-island-node" data-island="'+m.name+'" style="cursor:pointer;" onclick="selectIslandFromMap(\''+m.name+'\')">'+(m.hub?'<circle cx="'+m.x+'" cy="'+m.y+'" r="15" fill="url(#lagoon-grad)"/>':'')+(isSelected?'<circle cx="'+m.x+'" cy="'+m.y+'" r="'+(dotR+5)+'" fill="none" stroke="#d97706" stroke-width="2" class="selected-pulse"/>':'')+'<circle cx="'+m.x+'" cy="'+m.y+'" r="'+dotR+'" fill="'+dotFill+'" stroke="#ffffff" stroke-width="1.5" class="atoll-circle"/><text x="'+m.x+'" y="'+labelY+'" font-size="'+(m.hub?11:9)+'" font-weight="'+fontWeight+'" fill="'+textFill+'" text-anchor="'+textAnchor+'">'+m.name+(count?' ('+count+')':'')+'</text></g>';
+ }
+ svg+='</svg>';
+ container.innerHTML=svg;
+}
+
+window.selectIslandFromMap=function(islandName){
+ const select=$('#island');
+ if(select){
+  select.value=islandName;
+  updatePinBtn();updateWeather(islandName);render();
+  $('#feed-section')?.scrollIntoView({behavior:'smooth'});
+ }
+};
+
+function openShareModal(item){
+ const dlg=$('#share-dialog');
+ if(!dlg)return;
+ const url=item.showcaseUrl?new URL(item.showcaseUrl,location.origin).href:location.href;
+ $('#share-title').textContent=item.title;
+ $('#share-subtitle').textContent=(item.employer?item.employer+' · ':'')+item.island+' · '+item.category;
+ const fb=$('#share-fb');
+ if(fb)fb.href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url);
+ const wa=$('#share-wa');
+ if(wa)wa.href='https://wa.me/?text='+encodeURIComponent(item.title+' ('+item.island+') on Kiribati Connect:\n'+url);
+ const copyBtn=$('#share-copy');
+ if(copyBtn)copyBtn.onclick=async()=>{try{if(navigator.clipboard)await navigator.clipboard.writeText(url);toast('Listing link copied to clipboard!');}catch{toast('Link: '+url);}};
+ const printBtn=$('#share-print');
+ if(printBtn)printBtn.onclick=()=>{
+  const w=window.open('','_blank');
+  if(!w)return toast('Please allow popups to print notice card.');
+  const qrSvg=$('#share-qr-box svg')?.outerHTML||'';
+  w.document.write('<!doctype html><html><head><title>'+item.title+' - Kiribati Connect</title><style>body{font-family:ui-sans-serif,system-ui,sans-serif;padding:30px;text-align:center;color:#163f3a;max-width:480px;margin:0 auto;border:2px dashed #08665d;border-radius:16px;}h1{font-size:24px;margin:12px 0 6px;}.meta{color:#526f65;font-size:14px;margin-bottom:18px;}.desc{font-size:15px;line-height:1.5;margin-bottom:20px;text-align:left;padding:12px;background:#f7f7ef;border-radius:8px;}.qr{margin:20px auto;max-width:200px;}.qr svg{width:100%;height:auto;}.brand{font-size:16px;font-weight:bold;color:#08665d;}@media print{button{display:none;}}</style></head><body><div class="brand">Kiribati Connect</div><h1>'+item.title+'</h1><div class="meta">'+item.category+' · '+item.island+(item.employer?' · '+item.employer:'')+'</div><div class="desc">'+item.body+'</div><div class="qr">'+qrSvg+'</div><p style="font-size:13px;color:#555;">Scan with your phone to view updates, details and operator contact.</p><button onclick="window.print()" style="padding:10px 18px;font-size:15px;cursor:pointer;background:#08665d;color:#fff;border:0;border-radius:8px;margin-top:10px;">Print Notice</button></body></html>');
+  w.document.close();
+ };
+ const box=$('#share-qr-box');
+ if(box){
+  box.innerHTML='';
+  try{
+   if(typeof qrcode==='function'){
+    const qr=qrcode(0,'M');
+    qr.addData(url);
+    qr.make();
+    box.innerHTML=qr.createSvgTag(5);
+   }
+  }catch{}
+ }
+ dlg.showModal();
+}
+const closeShare=$('#close-share');
+if(closeShare)closeShare.onclick=()=>$('#share-dialog')?.close();

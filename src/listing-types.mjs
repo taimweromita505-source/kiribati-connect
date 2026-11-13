@@ -16,11 +16,15 @@ export function normalizeListing(data,now){
  if(category==='Jobs'){if(!data.closingDate)throw Error('Choose a job closing date.');closing_date=data.closingDate;expires_at=expireAt(closing_date,island)}
  else if(category==='Boats'){
   if(!ISLANDS.includes(data.destinationIsland)||data.destinationIsland===island)throw Error('Choose a destination different from the departure island.');
-  const status=data.boatStatus||'scheduled';if(!['scheduled','delayed','cancelled'].includes(status))throw Error('Choose a valid sailing status.');
-  const departureUtc=departureAt(data.departureLocal,island);if(status!=='cancelled'&&departureUtc<=now)throw Error('Choose a future departure time at the departure island.');
+  const status=data.boatStatus||'scheduled';if(!['scheduled','delayed','cancelled','departed'].includes(status))throw Error('Choose a valid sailing status.');
+  const departureUtc=departureAt(data.departureLocal,island);if(status!=='cancelled'&&status!=='departed'&&departureUtc<=now)throw Error('Choose a future departure time at the departure island.');
   if(data.boatConfirmed!==true)throw Error('Confirm that you checked these details with the operator.');
   const currency=data.currency||'AUD';if(!['AUD','USD','NZD'].includes(currency))throw Error('Choose a supported currency.');
-  Object.assign(details,{destinationIsland:data.destinationIsland,departureLocal:data.departureLocal,departureUtc,utcOffset:islandOffset(island),boatStatus:status,price:amount(data.price,false),currency});
+  const cargoAccepted=data.cargoAccepted===true||data.cargoAccepted==='yes'||data.cargoAccepted==='1';
+  const cargoStatus=['open','limited','none'].includes(data.cargoStatus)?data.cargoStatus:(cargoAccepted?'open':'none');
+  const cargoTypes=field(data.cargoTypes,150,'Cargo types');
+  const cargoRate=field(data.cargoRate,100,'Cargo rate');
+  Object.assign(details,{destinationIsland:data.destinationIsland,departureLocal:data.departureLocal,departureUtc,utcOffset:islandOffset(island),boatStatus:status,price:amount(data.price,false),currency,cargoAccepted,cargoStatus,cargoTypes,cargoRate});
   confirmed_at=now;expires_at=new Date(Date.parse(departureUtc)+86400000).toISOString();
  }else{
   if(data.expiresOn)expires_at=expireAt(data.expiresOn,island);
@@ -36,8 +40,8 @@ export function normalizeListing(data,now){
 }
 function describe(row,details){
  const lines=[];
- if(row.category==='Jobs')lines.push('Employer: '+row.employer,'Apply/contact: '+row.contact,'Closing date: '+row.closing_date);
- else if(row.category==='Boats')lines.push('Operator: '+row.employer,'Route: '+row.island+' → '+details.destinationIsland,'Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)','Sailing status: '+details.boatStatus,'Fare: '+(details.price==null?'Contact operator':details.currency+' '+Number(details.price).toFixed(2)),'Operator contact: '+row.contact,'Contributor checked with operator: '+row.confirmed_at,'Confirm the latest sailing details with the operator before travel.');
+ if(row.category==='Jobs')lines.push('Employer: '+row.employer,'Apply/contact: '+row.contact,'Closing date: '+row.closing_date,'Status: '+(row.status==='closed'?'position filled':'open'));
+ else if(row.category==='Boats')lines.push('Operator: '+row.employer,'Route: '+row.island+' → '+details.destinationIsland,'Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)','Sailing status: '+(row.status==='closed'?'departed':details.boatStatus),'Fare: '+(details.price==null?'Contact operator':details.currency+' '+Number(details.price).toFixed(2)),details.cargoAccepted?'Cargo: '+(details.cargoStatus==='limited'?'Limited space':'Cargo accepted')+(details.cargoTypes?' ('+details.cargoTypes+')':'')+(details.cargoRate?' · Rate: '+details.cargoRate:''):'', 'Operator contact: '+row.contact,'Contributor checked with operator: '+row.confirmed_at,'Confirm the latest sailing details with the operator before travel.');
  else if(row.category==='Marketplace')lines.push('Seller: '+row.employer,'Price: '+details.currency+' '+Number(details.price).toFixed(2),'Condition: '+details.condition,'Availability: '+(row.status==='closed'?'sold':details.availability),'Seller contact: '+row.contact);
  else lines.push('Community notice.');
  if(row.expires_at)lines.push('Expires: '+new Date(row.expires_at).toLocaleString('en-GB',{timeZone:'UTC'})+' UTC.');
