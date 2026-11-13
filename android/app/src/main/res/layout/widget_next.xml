@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="#fffef9">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="KIRIBATI CONNECT" android:textSize="10sp" android:textColor="#08665d" android:textStyle="bold" />
+    <TextView android:id="@+id/widget_boat_label" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="Next boat" android:textSize="11sp" android:textColor="#60766e" />
+    <TextView android:id="@+id/widget_boat" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Loading…" android:textSize="14sp" android:textColor="#163f3a" android:textStyle="bold" android:maxLines="2" android:ellipsize="end" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="Latest job" android:textSize="11sp" android:textColor="#60766e" />
+    <TextView android:id="@+id/widget_job" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Loading…" android:textSize="14sp" android:textColor="#163f3a" android:textStyle="bold" android:maxLines="2" android:ellipsize="end" />
+</LinearLayout>

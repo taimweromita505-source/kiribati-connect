@@ -82,3 +82,8 @@ body.theme-dark .tag.Jobs{background:#2d2613;color:#d8b760;}
 body.theme-dark .tag.Government{background:#241d33;color:#b29ee0;}
 body.theme-dark .tag.Marketplace{background:#2b1f13;color:#df9f58;}
 body.theme-dark .example-badge{background:#2b2515;color:#cbb577;}
+
+.rating-line{font-weight:700!important;color:#8a6a10!important;font-size:12px!important;margin:0 0 10px!important}
+.photo-saver{width:100%;min-height:56px;margin:12px 0;border-style:dashed}
+.ratings-section select{display:inline-block;width:auto;margin-left:10px}
+body.theme-dark .rating-line{color:#f0cb5a!important}

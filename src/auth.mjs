@@ -16,6 +16,10 @@ const cookie=(token,maxAge=604800)=>`__Host-kc-session=${token}; Path=/; HttpOnl
 async function session(db,user){const token=b64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');await db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await digest(token),user.userId||user.id,Date.now()+604800000).run();return cookie(token)}
 async function limit(db,key,max){const now=Date.now();const row=await db.prepare('INSERT INTO auth_limits(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<? THEN excluded.expires_at ELSE expires_at END RETURNING attempts').bind(key,now+900000,now,now).first();return row.attempts<=max}
 async function read(request){const reader=request.body?.getReader();if(!reader)throw Error();let parts=[],size=0;for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4096){await reader.cancel();throw Error()}parts.push(value)}let bytes=new Uint8Array(size),offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length}return JSON.parse(new TextDecoder().decode(bytes))}
+export async function sendMail(env,to,subject,text){
+ const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({from:env.MAIL_FROM||'Kiribati Connect <onboarding@resend.dev>',to:[to],subject,text})});
+ if(!response.ok)throw Error('mail failed');
+}
 export async function handleAuth(request,env,user){
  if(request.method!=='POST')return reply({error:'Method not allowed.'},405);
  const url=new URL(request.url);if(request.headers.get('origin')!==url.origin)return reply({error:'Please use this site to sign in.'},403);
@@ -23,9 +27,32 @@ export async function handleAuth(request,env,user){
  if(path==='/api/auth/logout'){
   const token=request.headers.get('cookie')?.match(/(?:^|;\s*)__Host-kc-session=([a-zA-Z0-9_-]{43})/)?.[1];if(token)await db.prepare('DELETE FROM sessions WHERE token_hash=?').bind(await digest(token)).run();return reply({ok:true},200,{'Set-Cookie':cookie('',0)});
  }
- if(!['/api/auth/login','/api/auth/register','/api/auth/password','/api/auth/delete-account'].includes(path))return reply({error:'Not found.'},404);
+ if(!['/api/auth/login','/api/auth/register','/api/auth/password','/api/auth/delete-account','/api/auth/forgot-password','/api/auth/reset-password'].includes(path))return reply({error:'Not found.'},404);
  const ip=await digest(request.headers.get('CF-Connecting-IP')||'local');if(!await limit(db,'ip:'+ip,30))return reply({error:'Too many attempts. Try again in 15 minutes.'},429);
  let data;try{data=await read(request)}catch{return reply({error:'Invalid sign-in request.'},400)}
+ if(path==='/api/auth/forgot-password'){
+  const addr=typeof data?.email==='string'?data.email.trim().toLowerCase():'';
+  const generic=reply({ok:true,message:'If that email has an account, a reset link is on its way. It expires in 15 minutes.'});
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)||addr.length>254)return generic;
+  if(!await limit(db,'reset:'+await digest(addr),3))return generic;
+  const target=await db.prepare('SELECT id,name FROM users WHERE email=? AND deleted_at IS NULL').bind(addr).first();
+  if(!target||!env.RESEND_API_KEY)return generic;
+  const token=b64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  await db.prepare('INSERT INTO password_resets(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await digest(token),target.id,Date.now()+900000).run();
+  const link=new URL(request.url).origin+'/login?reset='+token;
+  try{await (env.sendMail||sendMail)(env,addr,'Reset your Kiribati Connect password','Kia ora '+target.name+',\n\nUse this link within 15 minutes to choose a new password:\n'+link+'\n\nIf you did not ask for this, ignore this email; your password will not change.')}catch{console.error(JSON.stringify({event:'reset_mail_failed'}))}
+  return generic;
+ }
+ if(path==='/api/auth/reset-password'){
+  if(typeof data?.token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(data.token)||typeof data.newPassword!=='string'||data.newPassword.length<12||data.newPassword.length>128)return reply({error:'Use a valid reset link and a new password between 12 and 128 characters.'},400);
+  const hashed=await digest(data.token),row=await db.prepare('SELECT user_id FROM password_resets WHERE token_hash=? AND used_at IS NULL AND expires_at>?').bind(hashed,Date.now()).first();
+  if(!row)return reply({error:'This reset link is invalid or has expired. Request a new one.'},400);
+  const claimed=await db.prepare('UPDATE password_resets SET used_at=? WHERE token_hash=? AND used_at IS NULL').bind(Date.now(),hashed).run();
+  if(!claimed.meta.changes)return reply({error:'This reset link is invalid or has expired. Request a new one.'},400);
+  const newHash=await makeHash(data.newPassword,env.AUTH_PEPPER);
+  await db.batch([db.prepare('UPDATE users SET password_hash=? WHERE id=? AND deleted_at IS NULL').bind(newHash,row.user_id),db.prepare('DELETE FROM sessions WHERE user_id=?').bind(row.user_id)]);
+  return reply({ok:true},200,{'Set-Cookie':await session(db,{id:row.user_id})});
+ }
  if(path==='/api/auth/delete-account'){
   if(!user)return reply({error:'Sign in first.'},401);
   if(data?.confirmation!=='DELETE'||typeof data.password!=='string'||!await limit(db,'delete:'+user.userId,5))return reply({error:'Enter your current password and DELETE to confirm.'},400);

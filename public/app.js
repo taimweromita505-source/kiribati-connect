@@ -3,6 +3,10 @@ const samples=[{id:'c1',category:'Community',title:'A cleaner shore starts with 
 function toast(message){$('#toast').textContent=message;$('#toast').style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').style.display='none',5000)}function choose(next){if(location.pathname.startsWith('/listing/')){location.assign('/?category='+encodeURIComponent(next));return}view=next;savedOnly=false;$('#saved').textContent='♡ Saved';render()}function element(tag,cls,text){let e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e}
 
 let myIsland=localStorage.getItem('kc-my-island')||'';
+let reliableOnly=false;
+let dataSaver=localStorage.getItem('kc-data-saver')==='1'||(localStorage.getItem('kc-data-saver')===null&&navigator.connection?.saveData===true);
+window.ratingSummary=read('kc-ratings',{listings:{},operators:{}});
+function ratingFor(x){const s=window.ratingSummary||{listings:{},operators:{}};return {own:s.listings?.[x.id],op:x.employer?s.operators?.[x.category+':'+x.employer.trim().toLowerCase()]:null}}
 function updatePinBtn(){
  const pin=$('#pin-island'),current=$('#island')?.value;
  if(!pin)return;
@@ -43,6 +47,7 @@ function render(){
  $('#heading').textContent=savedOnly?'Your saved updates':view==='All updates'?'The latest in your community':view==='Boats'?'Find your next island crossing':view==='Jobs'?'Opportunities close to home':view+' updates';
  let q=$('#search').value.toLowerCase(),island=$('#island').value;
  let rows=[...notices,...($('#show-examples')?.checked?samples:[])].filter(x=>(!x.expires_at||Date.parse(x.expires_at)>Date.now())&&(view==='All updates'||x.category===view)&&matchesListingIsland(x,island)&&(!savedOnly||saved.includes(x.id))&&[x.title,x.body,x.island,x.employer||'',JSON.stringify(x.details||{})].join(' ').toLowerCase().includes(q));
+ if(reliableOnly)rows=rows.filter(x=>{const r=ratingFor(x);return (r.op||r.own)?.avg>=4}).sort((a,b)=>{const ra=ratingFor(a),rb=ratingFor(b);return (rb.op||rb.own).avg-(ra.op||ra.own).avg});
  $('#feed-count').textContent=rows.length+' '+(rows.length===1?'listing':'listings')+(island==='All islands'?' across the islands':' in '+island);
  $('#feed').replaceChildren(...rows.map(x=>{
   let card=element('article','card'),top=element('div','card-top'),save=element('button','save',saved.includes(x.id)?'♥':'♡');
@@ -70,6 +75,8 @@ function render(){
   }
   const photo=listingPhoto(x);
   if(photo)card.insertBefore(photo,bottom);
+  const rate=ratingFor(x),shown=rate.op||rate.own;
+  if(shown)card.insertBefore(element('p','rating-line','⭐ '+shown.avg.toFixed(1)+' · '+shown.count+(shown.count===1?' rating':' ratings')+(rate.op?' for this operator':'')),bottom);
   return card;
  }));
  if(!rows.length)$('#feed').append(element('p','empty','No listings here yet. Try another island, clear your search, or be the first to share something with your community.'));
@@ -77,6 +84,8 @@ function render(){
 }
 
 $('#show-examples').onchange=render;
+const saverBox=$('#data-saver');if(saverBox){saverBox.checked=dataSaver;saverBox.onchange=()=>{dataSaver=saverBox.checked;localStorage.setItem('kc-data-saver',dataSaver?'1':'0');render();toast(dataSaver?'Data saver on: photos load when you tap them.':'Data saver off.')}}
+const reliableBox=$('#most-reliable');if(reliableBox)reliableBox.onchange=()=>{reliableOnly=reliableBox.checked;render()};
 $('#search').oninput=render;
 $('#island').onchange=()=>{updatePinBtn();render();};
 const pinBtn=$('#pin-island');
@@ -128,7 +137,13 @@ render();
 if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(()=>$('#cache-status').textContent='Offline access ready on this device.').catch(()=>$('#cache-status').textContent='Offline access unavailable in this browser.')}else $('#cache-status').textContent='Offline caching needs a supported browser.';
 
 function matchesListingIsland(item,island){if(island==='All islands')return true;const members=[island,...($('#island').selectedOptions[0].dataset.members||'').split('|')];return members.includes(item.island)||members.includes(item.details?.destinationIsland)}
-function listingPhoto(item){const src=item.images?.[0]||(item.category==='Marketplace'?item.details?.photoUrl:null);if(!src)return null;const photo=element('img','listing-photo');photo.src=src;photo.alt=item.title;photo.loading='lazy';photo.referrerPolicy='no-referrer';photo.onerror=()=>photo.remove();return photo}
+function listingPhoto(item){
+ const src=item.images?.[0]||(item.category==='Marketplace'?item.details?.photoUrl:null);if(!src)return null;
+ const build=()=>{const photo=element('img','listing-photo');photo.src=src;photo.alt=item.title;photo.loading='lazy';photo.decoding='async';photo.referrerPolicy='no-referrer';photo.onerror=()=>photo.remove();return photo};
+ if(!dataSaver)return build();
+ const holder=element('button','secondary photo-saver','🖼 Tap to load photo (saves data)');holder.type='button';
+ holder.onclick=()=>holder.replaceWith(build());return holder;
+}
 function listingSourceLink(item){if(item.category!=='Government'||!item.details?.sourceUrl)return null;const link=element('a','source-link','Open official source ↗');link.href=item.details.sourceUrl;link.target='_blank';link.rel='noopener noreferrer nofollow';return link}
 function listingSummary(item){
  const details=item.details;

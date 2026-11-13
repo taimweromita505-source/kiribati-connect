@@ -8,6 +8,8 @@
     "nodejs_compat"
   ],
   "workers_dev": true,
+  "routes": [{ "pattern": "kiribaticonnect.app", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "kiribati-connect-images" }],
   "observability": {
     "enabled": true
   },

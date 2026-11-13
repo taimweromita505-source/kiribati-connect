@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.webkit.*;
 import android.view.View;
 import android.widget.*;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import com.android.billingclient.api.*;
@@ -16,18 +17,18 @@ import java.util.*;
 public class MainActivity extends Activity implements PurchasesUpdatedListener {
  private static final String ORIGIN="https://kiribati-connect.taimweromita505.workers.dev";
  private static final Set<String> PRODUCTS=Set.of("listing_publish","kiri_monthly","kiri_yearly");
- private WebView web; private BillingClient billing; private ValueCallback<Uri[]> fileCallback;
+ private SwipeRefreshLayout swipe; private WebView web; private BillingClient billing; private ValueCallback<Uri[]> fileCallback;
  private final Map<String,ProductDetails> products=new HashMap<>();
  private boolean pageReady=false;
  @Override public void onCreate(Bundle saved){super.onCreate(saved);
-  web=new WebView(this);web.setBackgroundColor(0xfff7f7ef);setContentView(web);
+  web=new WebView(this);web.setBackgroundColor(0xfff7f7ef);swipe=new SwipeRefreshLayout(this);swipe.setColorSchemeColors(0xff08665d);swipe.addView(web);swipe.setOnChildScrollUpCallback((parent,child)->web.getScrollY()>0);swipe.setOnRefreshListener(()->{web.reload();swipe.postDelayed(()->swipe.setRefreshing(false),8000);});setContentView(swipe);
   web.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});
   WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setDatabaseEnabled(true);settings.setCacheMode(WebSettings.LOAD_DEFAULT);settings.setAllowFileAccess(false);settings.setAllowContentAccess(true);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setSafeBrowsingEnabled(true);settings.setUserAgentString(settings.getUserAgentString()+" KiribatiConnectAndroid/1.0");
   CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
   web.setWebViewClient(new WebViewClient(){
    @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){Uri uri=request.getUrl();if(ORIGIN.equals(uri.getScheme()+"://"+uri.getHost()))return false;if(isPaymentHost(uri.getHost())){error("Use Google Play checkout in this app.");return true;}if(("https".equals(uri.getScheme())||"mailto".equals(uri.getScheme())||"tel".equals(uri.getScheme()))&&request.isForMainFrame()){try{startActivity(new Intent(Intent.ACTION_VIEW,uri));}catch(Exception ignored){error("No app can open this link.");}}return true;}
-   @Override public void onPageFinished(WebView view,String url){pageReady=url.startsWith(ORIGIN+"/");if(pageReady){catalog();restore();}}
-   @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError e){if(request.isForMainFrame()){LinearLayout box=new LinearLayout(MainActivity.this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,64,32,32);TextView text=new TextView(MainActivity.this);text.setText("Kiribati Connect\n\nCannot connect right now. Check your connection and try again.");Button retry=new Button(MainActivity.this);retry.setText("Try again");retry.setOnClickListener(v->{setContentView(web);web.loadUrl(ORIGIN+"/");});box.addView(text);box.addView(retry);setContentView(box);}}
+   @Override public void onPageFinished(WebView view,String url){if(swipe!=null)swipe.setRefreshing(false);pageReady=url.startsWith(ORIGIN+"/");if(pageReady){catalog();restore();}}
+   @Override public void onReceivedError(WebView view,WebResourceRequest request,WebResourceError e){if(request.isForMainFrame()){LinearLayout box=new LinearLayout(MainActivity.this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,64,32,32);TextView text=new TextView(MainActivity.this);text.setText("Kiribati Connect\n\nCannot connect right now. Check your connection and try again.");Button retry=new Button(MainActivity.this);retry.setText("Try again");retry.setOnClickListener(v->{setContentView(swipe);web.loadUrl(ORIGIN+"/");});box.addView(text);box.addView(retry);setContentView(box);}}
   });
   web.setWebChromeClient(new WebChromeClient(){@Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){if(fileCallback!=null)fileCallback.onReceiveValue(null);fileCallback=callback;Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("image/*");intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,params.getMode()==FileChooserParams.MODE_OPEN_MULTIPLE);try{startActivityForResult(intent,24);return true;}catch(Exception e){fileCallback=null;return false;}}});
   if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))WebViewCompat.addWebMessageListener(web,"KiribatiAndroid",Set.of(ORIGIN),(view,message,sourceOrigin,isMainFrame,reply)->{if(!isMainFrame||!ORIGIN.equals(sourceOrigin.toString()))return;try{JSONObject data=new JSONObject(message.getData());runOnUiThread(()->{switch(data.optString("type")){case "catalog":catalog();break;case "restore":restore();break;case "purchase":purchase(data);break;default:error("Unsupported app request.");}});}catch(Exception e){error("Invalid app request.");}});

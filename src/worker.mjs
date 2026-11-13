@@ -7,6 +7,7 @@ import {identityMetadata} from './play-identity.mjs';
 import {handlePlay,reconcilePlay} from './google-play.mjs';
 import {handleSafety} from './safety.mjs';
 import {handleAssistant} from './assistant.mjs';
+import {handleRatings} from './ratings.mjs';
 import {handleMembership,captureMembership} from './membership.mjs';
 const security={'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','X-Frame-Options':'DENY','Permissions-Policy':'camera=(), microphone=(), geolocation=()','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: blob:; connect-src 'self'; base-uri 'self'; form-action 'self' https://square.link https://checkout.square.site https://www.paypal.com https://www.sandbox.paypal.com; frame-ancestors 'none'"};
 export default {
@@ -18,6 +19,7 @@ export default {
    const user=await getUser(request,env.DB);
    if(path==='/api/blocks'||path.startsWith('/api/reports'))return await handleSafety(request,env,user);
    if(path.startsWith('/api/auth/'))return await handleAuth(request,env,user);
+    if(path==='/api/ratings/summary'||/^\/api\/showcases\/[-a-f0-9]{36}\/ratings$/i.test(path))return await handleRatings(request,env,user);
    if(path.startsWith('/api/play/'))return await handlePlay(request,env,user);
    if(request.headers.get('user-agent')?.includes('KiribatiConnectAndroid/')&&(path.startsWith('/api/payments/')||path.startsWith('/api/assistant/membership/'))&&!path.endsWith('/webhook'))return reply({error:'Use Google Play Billing in the Android app.'},403);
    if(path.startsWith('/api/assistant/membership/'))return await handleMembership(request,env,user);
