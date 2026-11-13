@@ -10,9 +10,9 @@ Accounts and browsing are free. Each new showcase listing costs **AUD $1**. Save
 
 **My hub** provides free editing, mark sold/filled/completed, archive, delete, and restore. Delete is recoverable: the record remains privately in Deleted until restored. It is not a permanent purge. Paid listings can be restored and republished without another fee. Site owners can remove inappropriate listings; contributors cannot undo an owner removal.
 
-All five types are supported: Community, Jobs, Boats, Government, Marketplace. Existing published content is grandfathered without a new charge. Pending submissions become private drafts under migration 0005. Expired records stay out of the public feed. An offline device can retain previously loaded content until reconnection.
+All four types are supported: Community, Jobs, Boats, Marketplace. Existing published content is grandfathered without a new charge. Pending submissions become private drafts under migration 0005. Expired records stay out of the public feed. An offline device can retain previously loaded content until reconnection.
 
-Government sources require an actual HTTPS .gov.ki link. The source is publisher supplied, not identity verification; payment does not verify a contributor's identity. Legacy source checks remain distinguishable. Boats require operator confirmation, separate departure/destination islands, and a departure time interpreted in the departure island's time zone. Jobs require application contact and closing date. Marketplace listings include seller, contact, price, condition, and availability.
+Boats require operator confirmation, separate departure/destination islands, and a departure time interpreted in the departure island's time zone. Jobs require application contact and closing date. Marketplace listings include seller, contact, price, condition, and availability.
 
 ## Screenshots and web links
 

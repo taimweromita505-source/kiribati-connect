@@ -24,7 +24,7 @@ Saved 30 October 2026 for later implementation. The initial Cloudflare membershi
 1. Find listings for the selected island.
 2. Explain posting and the AUD $1 per-new-listing payment.
 3. Draft listing titles and descriptions for user review.
-4. Help navigate Jobs, Boats, Community, Government and Marketplace.
+4. Help navigate Jobs, Boats, Community and Marketplace.
 
 Reference source listings when answering about schedules or announcements. Say when information is missing. Drafting help is free; users review their listing and pay before publication. The assistant cannot bypass payment or publish on a user's behalf.
 

@@ -47,8 +47,7 @@ export async function handleApi(request,db,user,adminEmails=''){
     if(data.status==='withdrawn'?previous.status!=='approved':previous.status!=='pending')return json({error:'This listing is no longer awaiting that action. Refresh the queue.'},409);
     if(data.status==='approved'&&previous.expires_at&&previous.expires_at<=now)return json({error:'The closing or expiry date has passed. Reject this listing so the author can update it.'},400);
     if(data.status==='approved'&&previous.category==='Boats'){const sailing=JSON.parse(previous.details_json||'{}');if(sailing.boatStatus!=='cancelled'&&sailing.departureUtc<=now)return json({error:'The departure time has passed. Ask the operator to update this sailing before approval.'},400)}
-    if(data.status==='approved'&&previous.category==='Government'&&data.sourceVerified!==true)return json({error:'Open and verify the official source before approving this announcement.'},400);
-    action=data.status;const verified=action==='approved'&&previous.category==='Government'?1:action==='withdrawn'?previous.source_verified:0;snapshot={...previous,status:action,review_note:data.note.trim(),source_verified:verified};
+    action=data.status;const verified=action==='withdrawn'?previous.source_verified:0;snapshot={...previous,status:action,review_note:data.note.trim(),source_verified:verified};
     mutation=db.prepare('UPDATE notices SET status=?,review_note=?,reviewed_by=?,reviewed_at=?,source_verified=?,updated_at=?,version=version+1,mutation_id=? WHERE id=? AND version=?').bind(action,data.note.trim(),user.userId,now,verified,now,token,id,data.version);
    }else if(ownerMatch[2]){
     action=ownerMatch[2]==='close'?'closed':'withdrawn';if(previous.status==='withdrawn'||(action==='closed'&&!['pending','approved'].includes(previous.status)))return json({error:'That action is no longer available. Refresh My listings.'},409);

@@ -10,7 +10,6 @@ const author={userId:'operator',email:'operator@example.test'},admin={userId:'ad
 function call(db,path,method='GET',data,user=author){return handleApi(new Request('https://test.local/api/'+path,{method,headers:{origin:'https://test.local','content-type':'application/json'},...(data?{body:JSON.stringify(data)}:{})}),db,user,'admin@example.test')}
 const base=category=>({submissionId:crypto.randomUUID(),category,title:'Section test listing',body:'Local test details.',island:'South Tarawa',employer:'Test publisher',contact:'test@example.test'});
 const boat=()=>({...base('Boats'),island:'Kiritimati',destinationIsland:'Kanton',departureLocal:'2099-01-01T09:00',boatStatus:'scheduled',boatConfirmed:true,price:'25.50',currency:'AUD'});
-const gov=()=>({...base('Government'),sourceUrl:'https://www.met.gov.ki/announcements',reference:'TEST-001',announcementDate:'2026-10-29'});
 const market=()=>({...base('Marketplace'),price:'12.50',currency:'AUD',condition:'used',availability:'available',photoUrl:'https://example.com/item.jpg'});
 const feed=async db=>(await(await call(db,'notices','GET',null,null)).json()).notices;
 test('boats preserve route, departure-zone conversion, fares, contributor confirmation and cancellation status',async()=>{
@@ -28,19 +27,10 @@ test('boats reject invalid routes, dates, confirmations and money; cancelled pas
  const cancelled=normalizeListing({...boat(),boatStatus:'cancelled',departureLocal:'2026-10-30T01:00'},now);assert.equal(cancelled.expires_at,'2026-10-30T11:00:00.000Z');
  assert.throws(()=>normalizeListing({...boat(),boatStatus:'cancelled',departureLocal:'2020-01-01T09:00'},now));
 });
-test('government publication requires a checked official source and editing clears verification',async()=>{
- const db=database(),input=gov();assert.equal((await call(db,'notices','POST',{...input,sourceVerified:true,source_verified:1})).status,201);
- let item=(await(await call(db,'notices/mine')).json()).notices[0];assert.equal(item.source_verified,0);
- assert.equal((await call(db,'moderation/'+input.submissionId,'PUT',{status:'approved',note:'',version:1,sourceVerified:true},other)).status,403);
- assert.equal((await call(db,'moderation/'+input.submissionId,'PUT',{status:'approved',note:'',version:1},admin)).status,400);
- assert.equal((await call(db,'moderation/'+input.submissionId,'PUT',{status:'approved',note:'Source checked',version:1,sourceVerified:true},admin)).status,200);
- item=(await feed(db))[0];assert.equal(item.source_verified,1);assert.equal(item.details.sourceUrl,input.sourceUrl);assert.match(item.source,/Official source checked/);
- assert.equal((await call(db,'notices/'+input.submissionId,'PUT',{...input,version:2,sourceVerified:true})).status,200);assert.equal((await feed(db)).length,0);item=(await(await call(db,'notices/mine')).json()).notices[0];assert.equal(item.source_verified,0);
- assert.equal((await call(db,'moderation/'+input.submissionId,'PUT',{status:'approved',note:'Stale',version:2,sourceVerified:true},admin)).status,409);
-});
-test('government links require HTTPS and the actual .gov.ki domain',()=>{
- const now='2026-10-29T12:00:00.000Z';for(const sourceUrl of ['http://met.gov.ki/a','https://met.gov.ki.evil.example/a','https://example.com/a','javascript:alert(1)','https://user:password@met.gov.ki/a'])assert.throws(()=>normalizeListing({...gov(),sourceUrl},now));
- assert.throws(()=>normalizeListing({...gov(),announcementDate:'2026-02-30'},now));assert.equal(normalizeListing(gov(),now).source_verified,0);
+test('government category is rejected and not supported',async()=>{
+ const db=database();
+ assert.throws(()=>normalizeListing({category:'Government',title:'Announce',body:'Details',island:'South Tarawa'},'2026-10-29T12:00:00.000Z'));
+ assert.equal((await call(db,'notices','POST',{submissionId:crypto.randomUUID(),category:'Government',title:'Test',body:'Desc',island:'South Tarawa',employer:'Gov',contact:'info@gov.ki'})).status,400);
 });
 test('marketplace items include price, photo, condition, reservation and a recoverable sold state',async()=>{
  const db=database(),input=market();assert.equal((await call(db,'notices','POST',input)).status,201);const stored=(await(await call(db,'notices/mine')).json()).notices[0];assert.equal(stored.details.price,12.5);assert.ok(Date.parse(stored.expires_at)>Date.now()+29*86400000);
@@ -51,7 +41,8 @@ test('marketplace items include price, photo, condition, reservation and a recov
 test('marketplace photos and prices are validated; the built editor includes all types and both island selectors',()=>{
  const now='2026-10-29T12:00:00.000Z';for(const patch of [{price:''},{price:'-3'},{price:'1e3'},{price:'1.234'},{condition:'unknown'},{photoUrl:'javascript:alert(1)'},{photoUrl:'http://example.com/photo'},{photoUrl:'https://127.0.0.1/photo'},{photoUrl:'https://localhost/photo'},{photoUrl:'https://[::1]/photo'}])assert.throws(()=>normalizeListing({...market(),...patch},now));
  assert.equal(JSON.parse(normalizeListing({...market(),price:'0'},now).details_json).price,0);
- const html=assets['/community.html'].body;for(const value of ['Community','Jobs','Boats','Government','Marketplace'])assert.ok(html.includes('value="'+value+'"'));
+ const html=assets['/community.html'].body;for(const value of ['Community','Jobs','Boats','Marketplace'])assert.ok(html.includes('value="'+value+'"'));
+ assert.ok(!html.includes('value="Government"'));
  const destination=html.match(/<select name="destinationIsland">([\s\S]*?)<\/select>/)[1];assert.equal((destination.match(/<option/g)||[]).length,38);
  assert.match(assets['/app.js'].body,/destinationIsland/);
  assert.match(assets['/notices.js'].body,/Save draft/);
