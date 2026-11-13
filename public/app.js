@@ -66,7 +66,7 @@ function render(){
   bottom.append(element('span','',x.island+' · '+(x.showcaseUrl?listingDate(x.updated_at||x.created_at):'Example only')),detail);
   card.append(top,element('h3','',x.title));
   if(x.employer)card.append(element('p','publisher-line',x.employer));
-  card.append(element('p','card-description',x.body),bottom);
+  card.append(element('p','card-description',x.body));if(x.contact){const c=contactActions(x.contact);if(c)card.append(c)}card.append(bottom);
   const summary=listingSummary(x);
   if(summary){
    const badge=boatStatusBadge(x);
@@ -87,7 +87,7 @@ $('#show-examples').onchange=render;
 const saverBox=$('#data-saver');if(saverBox){saverBox.checked=dataSaver;saverBox.onchange=()=>{dataSaver=saverBox.checked;localStorage.setItem('kc-data-saver',dataSaver?'1':'0');render();toast(dataSaver?'Data saver on: photos load when you tap them.':'Data saver off.')}}
 const reliableBox=$('#most-reliable');if(reliableBox)reliableBox.onchange=()=>{reliableOnly=reliableBox.checked;render()};
 $('#search').oninput=render;
-$('#island').onchange=()=>{updatePinBtn();render();};
+$('#island').onchange=()=>{updatePinBtn();updateWeather($('#island').value);render();};
 const pinBtn=$('#pin-island');
 if(pinBtn){
  pinBtn.onclick=()=>{
@@ -133,10 +133,61 @@ if(myIsland&&$('#island')){
 }
 updatePinBtn();
 online();
-render();
+render();updateWeather($('#island')?.value||'South Tarawa');
 if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(()=>$('#cache-status').textContent='Offline access ready on this device.').catch(()=>$('#cache-status').textContent='Offline access unavailable in this browser.')}else $('#cache-status').textContent='Offline caching needs a supported browser.';
 
 function matchesListingIsland(item,island){if(island==='All islands')return true;const members=[island,...($('#island').selectedOptions[0].dataset.members||'').split('|')];return members.includes(item.island)||members.includes(item.details?.destinationIsland)}
+
+function contactActions(contact){
+ if(!contact||typeof contact!=='string')return null;
+ const digits=contact.replace(/[^0-9]/g,'');
+ let phone=null;
+ if(digits.length>=7&&digits.length<=12){
+  phone=digits.startsWith('686')?digits:('686'+digits.replace(/^0+/,''));
+ }
+ const emailMatch=contact.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+ const wrap=element('div','card-contact-actions');
+ if(phone){
+  const wa=element('a','contact-btn wa-btn','💬 WhatsApp');
+  wa.href='https://wa.me/'+phone;
+  wa.target='_blank';wa.rel='noopener noreferrer';
+  const call=element('a','contact-btn call-btn','📞 Call');
+  call.href='tel:+'+phone;
+  const sms=element('a','contact-btn sms-btn','✉️ SMS');
+  sms.href='sms:+'+phone;
+  wrap.append(wa,call,sms);
+ }
+ if(emailMatch){
+  const mail=element('a','contact-btn mail-btn','✉️ Email');
+  mail.href='mailto:'+emailMatch[0];
+  wrap.append(mail);
+ }
+ return wrap.children.length?wrap:null;
+}
+
+const islandCoords={
+ 'South Tarawa':{lat:1.33,lon:172.98,label:'Tarawa Lagoon'},
+ 'North Tarawa':{lat:1.50,lon:173.00,label:'Tarawa Atoll'},
+ 'Abaiang':{lat:1.83,lon:172.95,label:'Abaiang Lagoon'},
+ 'Kiritimati':{lat:1.87,lon:-157.43,label:'Kiritimati Waters'},
+ 'default':{lat:1.33,lon:172.98,label:'Gilbert Islands'}
+};
+async function updateWeather(island){
+ const box=$('#weather-box'),title=$('#weather-title'),info=$('#weather-info'),meta=$('#weather-meta');
+ if(!box||!title)return;
+ const loc=islandCoords[island]||islandCoords['default'];
+ try{
+  const res=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code&timezone=auto');
+  if(!res.ok)return;
+  const d=await res.json(),cur=d.current;
+  const temp=Math.round(cur.temperature_2m),wind=Math.round(cur.wind_speed_10m);
+  const condition=wind>28?'🔴 Rough winds — check with operator':wind>18?'🟡 Moderate breeze — check swell':'🟢 Gentle lagoon breeze — good crossing';
+  title.textContent=loc.label+' · '+temp+'°C';
+  info.textContent='Wind: '+wind+' km/h · '+condition;
+  meta.textContent='Live marine & weather · Confirm with operator before wharf departure';
+ }catch{}
+}
+
 function listingPhoto(item){
  const src=item.images?.[0]||(item.category==='Marketplace'?item.details?.photoUrl:null);if(!src)return null;
  const build=()=>{const photo=element('img','listing-photo');photo.src=src;photo.alt=item.title;photo.loading='lazy';photo.decoding='async';photo.referrerPolicy='no-referrer';photo.onerror=()=>photo.remove();return photo};
@@ -163,3 +214,17 @@ function listingSummary(item){
 }
 
 function listingDate(value){if(!value||!Number.isFinite(Date.parse(value)))return 'Community listing';return 'Updated '+new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Pacific/Tarawa'}).format(new Date(value))}
+
+const alertsDialog=$('#alerts-dialog');
+if(alertsDialog){
+ $('#alerts').onclick=()=>{alertsDialog.showModal();const p=read('kc-alert-prefs',{});if(p.email)$('#alert-email').value=p.email;if(p.boats!=null)$('#alert-boats').checked=p.boats;if(p.jobs!=null)$('#alert-jobs').checked=p.jobs;if(p.digest!=null)$('#alert-digest').checked=p.digest;};
+ $('#close-alerts').onclick=()=>alertsDialog.close();
+ $('#alerts-form').onsubmit=event=>{
+  event.preventDefault();
+  const email=$('#alert-email').value.trim();
+  const prefs={email,boats:$('#alert-boats').checked,jobs:$('#alert-jobs').checked,digest:$('#alert-digest').checked,island:$('#island')?.value||'All islands'};
+  try{localStorage.setItem('kc-alert-prefs',JSON.stringify(prefs))}catch{}
+  alertsDialog.close();
+  toast('Alert preferences saved for '+prefs.island+'!');
+ };
+}

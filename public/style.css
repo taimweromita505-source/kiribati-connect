@@ -87,3 +87,20 @@ body.theme-dark .example-badge{background:#2b2515;color:#cbb577;}
 .photo-saver{width:100%;min-height:56px;margin:12px 0;border-style:dashed}
 .ratings-section select{display:inline-block;width:auto;margin-left:10px}
 body.theme-dark .rating-line{color:#f0cb5a!important}
+
+/* Contact Actions */
+.card-contact-actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;}
+.contact-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;text-decoration:none;border:1px solid var(--line);background:#fff;color:var(--ink);transition:background .15s;}
+.wa-btn{background:#e8f7ee;color:#176839;border-color:#b9e4cb;}
+.wa-btn:hover{background:#d4f1de;}
+.call-btn{background:#eaf2f8;color:#245882;border-color:#bad6ec;}
+.sms-btn{background:#fdf6e7;color:#856404;border-color:#f1dec0;}
+.mail-btn{background:#f3eef8;color:#5a3782;border-color:#d7c7eb;}
+.download-card{background:#e8f2ee;border:1px solid #d2e4dc;border-radius:16px;padding:22px;margin-bottom:18px;}
+.download-card>span{font-size:28px;}
+.apk-btn{border-radius:10px!important;min-height:46px;display:inline-flex;align-items:center;padding:12px 16px!important;}
+body.theme-dark .wa-btn{background:#152f20;color:#61d796;border-color:#1e4c32;}
+body.theme-dark .call-btn{background:#182835;color:#6faedf;border-color:#254157;}
+body.theme-dark .sms-btn{background:#2e2612;color:#efc653;border-color:#483a1a;}
+body.theme-dark .mail-btn{background:#261b35;color:#c09ef0;border-color:#3f2d59;}
+body.theme-dark .download-card{background:#15231e;border-color:#243a32;}

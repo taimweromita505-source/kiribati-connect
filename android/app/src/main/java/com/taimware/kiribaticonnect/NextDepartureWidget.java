@@ -17,7 +17,7 @@ import java.time.ZoneOffset;
 
 /** Home screen widget: next boat departure and latest job. Data is the public feed; cached for offline. */
 public class NextDepartureWidget extends AppWidgetProvider {
-  private static final String ORIGIN = "https://kiribati-connect.taimweromita505.workers.dev";
+  private static final String ORIGIN = "https://kiribaticonnect.app";
 
   @Override public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
     final PendingResult pending = goAsync();

@@ -13,6 +13,15 @@ const security={'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-ori
 export default {
  async fetch(request,env,ctx){try{
   const url=new URL(request.url),path=url.pathname;
+  if(path==='/download/kiribati-connect.apk'||path==='/download/apk'||path==='/app.apk'){
+   if(!env.IMAGES)return new Response('APK download unavailable.',{status:503});
+   const obj=await env.IMAGES.get('downloads/kiribati-connect.apk');
+   if(!obj)return new Response('APK not found.',{status:404});
+   return new Response(obj.body,{headers:{...security,'Content-Type':'application/vnd.android.package-archive','Content-Disposition':'attachment; filename="kiribati-connect.apk"','Cache-Control':'public, max-age=3600'}});
+  }
+  if(path==='/api/app/latest.json'){
+   return reply({version:'1.1.0',versionCode:2,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Direct web distribution with home screen widget, offline feed, and lagoon swell.'},200,{'Cache-Control':'public, max-age=600'});
+  }
   if(path.startsWith('/api/play/identity/'))return identityMetadata(request,env);
   if(path.startsWith('/api/')){
    if(!env.DB||!env.AUTH_PEPPER)return reply({error:'The notice board is temporarily unavailable.'},503);
@@ -21,7 +30,7 @@ export default {
    if(path.startsWith('/api/auth/'))return await handleAuth(request,env,user);
     if(path==='/api/ratings/summary'||/^\/api\/showcases\/[-a-f0-9]{36}\/ratings$/i.test(path))return await handleRatings(request,env,user);
    if(path.startsWith('/api/play/'))return await handlePlay(request,env,user);
-   if(request.headers.get('user-agent')?.includes('KiribatiConnectAndroid/')&&(path.startsWith('/api/payments/')||path.startsWith('/api/assistant/membership/'))&&!path.endsWith('/webhook'))return reply({error:'Use Google Play Billing in the Android app.'},403);
+   if(env.PLAY_BILLING_ENABLED!=='false'&&request.headers.get('user-agent')?.includes('KiribatiConnectAndroid/')&&(path.startsWith('/api/payments/')||path.startsWith('/api/assistant/membership/'))&&!path.endsWith('/webhook'))return reply({error:'Use Google Play Billing in the Android app.'},403);
    if(path.startsWith('/api/assistant/membership/'))return await handleMembership(request,env,user);
    if(path.startsWith('/api/assistant/'))return await handleAssistant(request,env,user);
    // Roles come from the database, never from client emails or identity headers.
