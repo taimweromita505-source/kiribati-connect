@@ -37,6 +37,8 @@ export function normalizeListing(data,now){
   const aircraftType=category==='Flights'?field(data.aircraftType,50,'Aircraft type'):'';
   const baggageAllowance=category==='Flights'?field(data.baggageAllowance,100,'Baggage allowance'):'';
   const vesselName=category==='Ships'?field(data.vesselName,100,'Vessel name'):'';
+  const viaIslands=field(data.viaIslands,150,'Via islands');
+  const returnDepartureLocal=field(data.returnDepartureLocal,30,'Return departure date');
   Object.assign(details,{
     destinationIsland:data.destinationIsland,
     departureLocal:data.departureLocal,
@@ -54,7 +56,9 @@ export function normalizeListing(data,now){
     flightNumber,
     aircraftType,
     baggageAllowance,
-    vesselName
+    vesselName,
+    viaIslands,
+    returnDepartureLocal
   });
   confirmed_at=now;expires_at=new Date(Date.parse(departureUtc)+86400000).toISOString();
  }else{
@@ -62,7 +66,8 @@ export function normalizeListing(data,now){
   if(category==='Marketplace'){
    const currency=data.currency||'AUD';if(!['AUD','USD','NZD'].includes(currency))throw Error('Choose a supported currency.');
    if(!['new','used'].includes(data.condition))throw Error('Choose new or used condition.');if(!['available','reserved'].includes(data.availability||'available'))throw Error('Choose a valid availability.');
-   Object.assign(details,{price:amount(data.price,true),currency,condition:data.condition,availability:data.availability||'available',photoUrl:httpsUrl(field(data.photoUrl,1000,'Photo URL'))});
+   const intent=['selling','wanted'].includes(data.intent)?data.intent:'selling';
+   Object.assign(details,{price:amount(data.price,true),currency,condition:data.condition,availability:data.availability||'available',photoUrl:httpsUrl(field(data.photoUrl,1000,'Photo URL')),intent});
    if(!expires_at)expires_at=new Date(Date.parse(now)+30*86400000).toISOString();
   }
  }
@@ -72,11 +77,30 @@ export function normalizeListing(data,now){
 function describe(row,details){
  const lines=[];
  if(row.category==='Jobs')lines.push('Employer: '+row.employer,'Apply/contact: '+row.contact,'Closing date: '+row.closing_date,'Status: '+(row.status==='closed'?'position filled':'open'));
- else if(row.category==='Boats')lines.push('Operator: '+row.employer,'Route: '+row.island+' → '+details.destinationIsland,'Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)','Sailing status: '+(row.status==='closed'?'departed':details.boatStatus),'Fare: '+(details.price==null?'Contact operator':details.currency+' '+Number(details.price).toFixed(2)),details.cargoAccepted?'Cargo: '+(details.cargoStatus==='limited'?'Limited space':'Cargo accepted')+(details.cargoTypes?' ('+details.cargoTypes+')':'')+(details.cargoRate?' · Rate: '+details.cargoRate:''):'', 'Operator contact: '+row.contact,'Contributor checked with operator: '+row.confirmed_at,'Confirm the latest sailing details with the operator before travel.');
- else if(row.category==='Ships')lines.push('Shipping line / vessel: '+row.employer+(details.vesselName?' ('+details.vesselName+')':''),'Route: '+row.island+' → '+details.destinationIsland,'Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)','Voyage status: '+(row.status==='closed'?'departed':details.shipStatus||details.boatStatus),'Fare: '+(details.price==null?'Contact shipping line':details.currency+' '+Number(details.price).toFixed(2)),details.cargoAccepted?'Cargo / Freight: '+(details.cargoStatus==='limited'?'Limited space':'Cargo accepted')+(details.cargoTypes?' ('+details.cargoTypes+')':'')+(details.cargoRate?' · Rate: '+details.cargoRate:''):'','Operator contact: '+row.contact,'Contributor checked with operator: '+row.confirmed_at,'Confirm the latest voyage details with the shipping company before cargo drop-off or travel.');
- else if(row.category==='Flights')lines.push('Airline: '+row.employer+(details.flightNumber?' · Flight '+details.flightNumber:'')+(details.aircraftType?' ('+details.aircraftType+')':''),'Route: '+row.island+' → '+details.destinationIsland,'Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)','Flight status: '+(row.status==='closed'?'departed':details.flightStatus||details.boatStatus),'Airfare: '+(details.price==null?'Contact airline':details.currency+' '+Number(details.price).toFixed(2)),details.baggageAllowance?'Baggage: '+details.baggageAllowance:'',details.cargoAccepted?'Air freight: '+(details.cargoRate?'Rate: '+details.cargoRate:'Accepted'):'','Airline contact: '+row.contact,'Contributor checked with airline: '+row.confirmed_at,'Confirm flight check-in time and terminal details before heading to the airport.');
- else if(row.category==='Marketplace')lines.push('Seller: '+row.employer,'Price: '+details.currency+' '+Number(details.price).toFixed(2),'Condition: '+details.condition,'Availability: '+(row.status==='closed'?'sold':details.availability),'Seller contact: '+row.contact);
- else lines.push('Community notice.');
+ else if(row.category==='Boats'){
+  lines.push('Operator: '+row.employer,'Route: '+row.island+' → '+(details.viaIslands?details.viaIslands+' → ':'')+details.destinationIsland);
+  if(details.viaIslands)lines.push('Via stops: '+details.viaIslands);
+  lines.push('Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)');
+  if(details.returnDepartureLocal)lines.push('Return: '+details.returnDepartureLocal.replace('T',' ')+' (UTC+'+details.utcOffset+')');
+  lines.push('Sailing status: '+(row.status==='closed'?'departed':details.boatStatus),'Fare: '+(details.price==null?'Contact operator':details.currency+' '+Number(details.price).toFixed(2)),details.cargoAccepted?'Cargo: '+(details.cargoStatus==='limited'?'Limited space':'Cargo accepted')+(details.cargoTypes?' ('+details.cargoTypes+')':'')+(details.cargoRate?' · Rate: '+details.cargoRate:''):'', 'Operator contact: '+row.contact,'Contributor checked with operator: '+row.confirmed_at,'Confirm the latest sailing details with the operator before travel.');
+ }else if(row.category==='Ships'){
+  lines.push('Shipping line / vessel: '+row.employer+(details.vesselName?' ('+details.vesselName+')':''),'Route: '+row.island+' → '+(details.viaIslands?details.viaIslands+' → ':'')+details.destinationIsland);
+  if(details.viaIslands)lines.push('Via stops: '+details.viaIslands);
+  lines.push('Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)');
+  if(details.returnDepartureLocal)lines.push('Return voyage: '+details.returnDepartureLocal.replace('T',' ')+' (UTC+'+details.utcOffset+')');
+  lines.push('Voyage status: '+(row.status==='closed'?'departed':details.shipStatus||details.boatStatus),'Fare: '+(details.price==null?'Contact shipping line':details.currency+' '+Number(details.price).toFixed(2)),details.cargoAccepted?'Cargo / Freight: '+(details.cargoStatus==='limited'?'Limited space':'Cargo accepted')+(details.cargoTypes?' ('+details.cargoTypes+')':'')+(details.cargoRate?' · Rate: '+details.cargoRate:''):'','Operator contact: '+row.contact,'Contributor checked with operator: '+row.confirmed_at,'Confirm the latest voyage details with the shipping company before cargo drop-off or travel.');
+ }else if(row.category==='Flights'){
+  lines.push('Airline: '+row.employer+(details.flightNumber?' · Flight '+details.flightNumber:'')+(details.aircraftType?' ('+details.aircraftType+')':''),'Route: '+row.island+' → '+(details.viaIslands?details.viaIslands+' → ':'')+details.destinationIsland);
+  if(details.viaIslands)lines.push('Via stops: '+details.viaIslands);
+  lines.push('Departure: '+details.departureLocal?.replace('T',' ')+' (UTC+'+details.utcOffset+', departure island time)');
+  if(details.returnDepartureLocal)lines.push('Return flight: '+details.returnDepartureLocal.replace('T',' ')+' (UTC+'+details.utcOffset+')');
+  lines.push('Flight status: '+(row.status==='closed'?'departed':details.flightStatus||details.boatStatus),'Airfare: '+(details.price==null?'Contact airline':details.currency+' '+Number(details.price).toFixed(2)),details.baggageAllowance?'Baggage: '+details.baggageAllowance:'',details.cargoAccepted?'Air freight: '+(details.cargoRate?'Rate: '+details.cargoRate:'Accepted'):'','Airline contact: '+row.contact,'Contributor checked with airline: '+row.confirmed_at,'Confirm flight check-in time and terminal details before heading to the airport.');
+ }else if(row.category==='Marketplace'){
+  lines.push('Seller / Contact: '+row.employer);
+  if(details.intent==='wanted')lines.push('Listing type: Looking to buy (Wanted request)','Budget / Offer: '+(details.price==0?'Negotiable':details.currency+' '+Number(details.price).toFixed(2)));
+  else lines.push('Price: '+details.currency+' '+Number(details.price).toFixed(2));
+  lines.push('Condition: '+details.condition,'Availability: '+(row.status==='closed'?'sold / fulfilled':details.availability),'Contact: '+row.contact);
+ }else lines.push('Community notice.');
  if(row.expires_at)lines.push('Expires: '+new Date(row.expires_at).toLocaleString('en-GB',{timeZone:'UTC'})+' UTC.');
  return lines.filter(Boolean).join('\n');
 }

@@ -69,6 +69,21 @@ test('ships and flights support routes, status, cargo, and departed state',async
  assert.equal(closedFlight.status,'closed');
  assert.match(closedFlight.detail,/Flight status: departed/);
 });
+test('multi-stop routes and marketplace wanted requests are supported',async()=>{
+ const db=database();
+ const multiStop={...ship(),viaIslands:'Abemama, Nonouti',returnDepartureLocal:'2099-01-10T08:00'};
+ assert.equal((await call(db,'notices','POST',multiStop)).status,201);
+ const item=(await(await call(db,'notices/mine')).json()).notices[0];
+ assert.equal(item.details.viaIslands,'Abemama, Nonouti');
+ assert.match(item.detail,/Via stops: Abemama, Nonouti/);
+ assert.match(item.detail,/Return voyage: 2099-01-10 08:00/);
+
+ const wantedItem={...market(),intent:'wanted',title:'Looking for 15HP outboard engine'};
+ assert.equal((await call(db,'notices','POST',wantedItem)).status,201);
+ const wantedStored=(await(await call(db,'notices/mine')).json()).notices.find(n=>n.id===wantedItem.submissionId);
+ assert.equal(wantedStored.details.intent,'wanted');
+ assert.match(wantedStored.detail,/Looking to buy/);
+});
 test('government category is rejected and not supported',async()=>{
  const db=database();
  assert.throws(()=>normalizeListing({category:'Government',title:'Announce',body:'Details',island:'South Tarawa'},'2026-10-29T12:00:00.000Z'));
@@ -85,6 +100,8 @@ test('marketplace photos and prices are validated; the built editor includes all
  assert.equal(JSON.parse(normalizeListing({...market(),price:'0'},now).details_json).price,0);
  const html=assets['/community.html'].body;for(const value of ['Community','Jobs','Boats','Ships','Flights','Marketplace'])assert.ok(html.includes('value="'+value+'"'));
  assert.ok(!html.includes('value="Government"'));
+ assert.ok(html.includes('id="price-filter"'));
+ assert.ok(html.includes('id="print-bulletin-btn"'));
  const destination=html.match(/<select name="destinationIsland">([\s\S]*?)<\/select>/)[1];assert.equal((destination.match(/<option/g)||[]).length,38);
  assert.match(assets['/app.js'].body,/destinationIsland/);
  assert.match(assets['/notices.js'].body,/Save draft/);

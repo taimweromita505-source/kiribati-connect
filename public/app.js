@@ -46,7 +46,17 @@ function render(){
  $('#filters').replaceChildren(...categories.map(c=>{let b=element('button',view===c?'active':'',c);b.onclick=()=>choose(c);b.setAttribute('aria-pressed',view===c);return b}));
  $('#heading').textContent=savedOnly?'Your saved updates':view==='All updates'?'The latest in your community':view==='Boats'?'Find your next lagoon crossing':view==='Ships'?'Inter-island shipping & cargo voyages':view==='Flights'?'Domestic & regional flight schedules':view==='Jobs'?'Opportunities close to home':view+' updates';
  let q=$('#search').value.toLowerCase(),island=$('#island').value;
+ const pFilter=$('#price-filter')?.value||'all';
  let rows=[...notices,...($('#show-examples')?.checked?samples:[])].filter(x=>(!x.expires_at||Date.parse(x.expires_at)>Date.now())&&(view==='All updates'||x.category===view)&&matchesListingIsland(x,island)&&(!savedOnly||saved.includes(x.id))&&[x.title,x.body,x.island,x.employer||'',JSON.stringify(x.details||{})].join(' ').toLowerCase().includes(q));
+ if(pFilter==='wanted'){
+  rows=rows.filter(x=>x.category==='Marketplace'&&x.details?.intent==='wanted');
+ }else if(pFilter==='under20'){
+  rows=rows.filter(x=>x.details?.price!=null&&Number(x.details.price)<20);
+ }else if(pFilter==='20-100'){
+  rows=rows.filter(x=>x.details?.price!=null&&Number(x.details.price)>=20&&Number(x.details.price)<=100);
+ }else if(pFilter==='over100'){
+  rows=rows.filter(x=>x.details?.price!=null&&Number(x.details.price)>100);
+ }
  if(reliableOnly)rows=rows.filter(x=>{const r=ratingFor(x);return (r.op||r.own)?.avg>=4}).sort((a,b)=>{const ra=ratingFor(a),rb=ratingFor(b);return (rb.op||rb.own).avg-(ra.op||ra.own).avg});
  $('#feed-count').textContent=rows.length+' '+(rows.length===1?'listing':'listings')+(island==='All islands'?' across the islands':' in '+island);
  $('#feed').replaceChildren(...rows.map(x=>{
@@ -78,6 +88,15 @@ function render(){
    const highlightCls='listing-highlight '+(x.details?.boatStatus||'')+(badge?' status-'+badge.cls:'');
    card.insertBefore(element('p',highlightCls,summary),card.querySelector('p'));
   }
+  if(['Boats','Ships','Flights'].includes(x.category)&&x.details?.destinationIsland){
+   const est=routeEstimateText(x.island,x.details.destinationIsland,x.category);
+   if(est)card.insertBefore(element('p','route-distance-badge',est),card.querySelector('p'));
+   if(x.details.viaIslands)card.insertBefore(element('p','via-stops-badge','⚓ Via: '+x.details.viaIslands),card.querySelector('p'));
+   if(x.details.returnDepartureLocal)card.insertBefore(element('p','return-trip-badge','⇄ Return: '+x.details.returnDepartureLocal.replace('T',' ')),card.querySelector('p'));
+  }
+  if(x.category==='Marketplace'&&x.details?.intent==='wanted'){
+   top.prepend(element('span','tag-wanted','🔍 WANTED'));
+  }
   if(['Boats','Ships','Flights'].includes(x.category)&&x.details?.cargoAccepted){
    const cargoText=(x.category==='Flights'?'✈️ Air freight: ':'📦 Cargo: ')+(x.details.cargoStatus==='limited'?'Limited space':'Accepted')+(x.details.cargoRate?' ('+x.details.cargoRate+')':'');
    card.insertBefore(element('p','cargo-badge',cargoText),card.querySelector('p'));
@@ -102,6 +121,8 @@ $('#show-examples').onchange=render;
 const saverBox=$('#data-saver');if(saverBox){saverBox.checked=dataSaver;saverBox.onchange=()=>{dataSaver=saverBox.checked;localStorage.setItem('kc-data-saver',dataSaver?'1':'0');render();toast(dataSaver?'Data saver on: photos load when you tap them.':'Data saver off.')}}
 const reliableBox=$('#most-reliable');if(reliableBox)reliableBox.onchange=()=>{reliableOnly=reliableBox.checked;render()};
 $('#search').oninput=render;
+const priceFilterSelect=$('#price-filter');if(priceFilterSelect)priceFilterSelect.onchange=render;
+const printBulletinBtn=$('#print-bulletin-btn');if(printBulletinBtn)printBulletinBtn.onclick=openPrintBulletin;
 $('#island').onchange=()=>{updatePinBtn();updateWeather($('#island').value);render();};
 const pinBtn=$('#pin-island');
 if(pinBtn){
@@ -232,12 +253,15 @@ async function updateWeather(island){
   const res=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+'&current=temperature_2m,wind_speed_10m,wind_direction_10m,weather_code&timezone=auto');
   if(!res.ok)return;
   const d=await res.json(),cur=d.current;
-  const temp=Math.round(cur.temperature_2m),wind=Math.round(cur.wind_speed_10m);
-  const condition=wind>28?'🔴 Rough winds — check with operator':wind>18?'🟡 Moderate breeze — check swell':'🟢 Gentle lagoon breeze — good crossing';
+  const temp=Math.round(cur.temperature_2m),windKm=Math.round(cur.wind_speed_10m);
+  const windKts=Math.round(windKm * 0.539957);
+  const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  const windDir=dirs[Math.round((cur.wind_direction_10m||0)/22.5)%16];
+  const seaState=windKts<10?'🟢 CALM LAGOON (Smooth crossings · Swell <0.8m)':windKts<16?'🟢 MODERATE BREEZE (Good crossings · Light chop 0.8-1.2m)':windKts<22?'🟡 CHOPPY WATERS (Caution for small craft · Swell 1.3-1.8m)':'🔴 ROUGH SEAS & STRONG WINDS (Advisory: check with harbour master)';
   const tide=estimateTarawaTide();
-  title.textContent=loc.label+' · '+temp+'°C';
-  info.textContent='Wind: '+wind+' km/h · '+condition;
-  meta.textContent=tide.state+' · Next High: '+tide.high+' · Next Low: '+tide.low+' (Tarawa time)';
+  title.textContent=loc.label+' · '+temp+'°C · '+windKts+' kts '+windDir;
+  info.textContent=seaState;
+  meta.textContent='Marine Barometer · '+tide.state+' · Next High: '+tide.high+' · Next Low: '+tide.low+' (Tarawa time)';
  }catch{}
 }
 
@@ -384,6 +408,62 @@ const mapIslands=[
  {name:'Kanton',x:420,y:220}
 ];
 
+
+const atollCoords = {
+ 'Makin':{lat:3.38,lon:172.98},
+ 'Butaritari':{lat:3.15,lon:172.82},
+ 'Marakei':{lat:2.00,lon:173.28},
+ 'Abaiang':{lat:1.83,lon:172.95},
+ 'Tarawa':{lat:1.35,lon:173.00},
+ 'North Tarawa':{lat:1.50,lon:173.02},
+ 'South Tarawa':{lat:1.33,lon:172.98},
+ 'Betio':{lat:1.35,lon:172.93},
+ 'Maiana':{lat:0.92,lon:173.01},
+ 'Abemama':{lat:0.40,lon:173.86},
+ 'Kuria':{lat:0.22,lon:173.41},
+ 'Aranuka':{lat:0.16,lon:173.60},
+ 'Nonouti':{lat:-0.67,lon:174.35},
+ 'Tabiteuea':{lat:-1.33,lon:174.83},
+ 'North Tabiteuea':{lat:-1.15,lon:174.68},
+ 'South Tabiteuea':{lat:-1.48,lon:175.02},
+ 'Beru':{lat:-1.33,lon:175.98},
+ 'Nikunau':{lat:-1.37,lon:176.47},
+ 'Onotoa':{lat:-1.88,lon:175.55},
+ 'Tamana':{lat:-2.50,lon:175.98},
+ 'Arorae':{lat:-2.64,lon:176.82},
+ 'Banaba':{lat:-0.85,lon:169.53},
+ 'Kanton':{lat:-2.81,lon:-171.67},
+ 'Kiritimati':{lat:1.87,lon:-157.40},
+ 'Tabuaeran':{lat:3.88,lon:-159.33},
+ 'Teraina':{lat:4.68,lon:-160.38}
+};
+
+function atollDistanceNm(fromName, toName){
+ const p1=atollCoords[fromName],p2=atollCoords[toName];
+ if(!p1||!p2)return null;
+ const toRad=Math.PI/180;
+ const dLat=(p2.lat-p1.lat)*toRad;
+ const dLon=(p2.lon-p1.lon)*toRad;
+ const a=Math.sin(dLat/2)**2 + Math.cos(p1.lat*toRad)*Math.cos(p2.lat*toRad)*Math.sin(dLon/2)**2;
+ const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+ return Math.round(3440.065 * c);
+}
+
+function routeEstimateText(from, to, category){
+ const nm = atollDistanceNm(from, to);
+ if(!nm)return null;
+ if(category==='Flights'){
+  const time = nm < 80 ? '~'+Math.max(15, Math.round(nm / 3.0))+' mins' : '~'+(nm / 200).toFixed(1)+' hrs';
+  return '🧭 '+nm+' NM · Flight est: '+time;
+ }
+ if(category==='Ships'){
+  const time = (nm / 9.0).toFixed(1);
+  return '🧭 '+nm+' NM · Cargo voyage est: ~'+time+' hrs';
+ }
+ const time = (nm / 14.0).toFixed(1);
+ return '🧭 '+nm+' NM · Boat crossing est: ~'+time+' hrs';
+}
+
 function renderIslandMap(){
  const container=$('#island-map-container');
  if(!container)return;
@@ -391,10 +471,23 @@ function renderIslandMap(){
  const activeRoutes=[];
  for(const it of notices){
   if(['Boats','Ships','Flights'].includes(it.category)&&it.details?.destinationIsland){
-   const from=mapIslands.find(m=>m.name===it.island);
-   const to=mapIslands.find(m=>m.name===it.details.destinationIsland);
+   const routeStops=[it.island];
+   if(it.details.viaIslands){
+    const vias=it.details.viaIslands.split(',').map(s=>s.trim()).filter(Boolean);
+    routeStops.push(...vias);
+   }
+   routeStops.push(it.details.destinationIsland);
    const status=it.details.flightStatus||it.details.shipStatus||it.details.boatStatus||'scheduled';
-   if(from&&to)activeRoutes.push({from,to,status,type:it.category,title:it.title});
+   for(let i=0;i<routeStops.length-1;i++){
+    const from=mapIslands.find(m=>m.name===routeStops[i]);
+    const to=mapIslands.find(m=>m.name===routeStops[i+1]);
+    if(from&&to)activeRoutes.push({from,to,status,type:it.category,title:it.title});
+   }
+   if(it.details.returnDepartureLocal){
+    const from=mapIslands.find(m=>m.name===it.details.destinationIsland);
+    const to=mapIslands.find(m=>m.name===it.island);
+    if(from&&to)activeRoutes.push({from,to,status,type:it.category,title:it.title+' (Return)'});
+   }
   }
  }
  let svg='<svg viewBox="0 0 490 380" class="atoll-map-svg" role="img" aria-label="Interactive Kiribati Island Map"><defs><radialGradient id="lagoon-grad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#99d6c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#08665d" stop-opacity="0.1"/></radialGradient></defs><rect width="100%" height="100%" rx="14" fill="#f1f7f4"/><rect x="365" y="15" width="115" height="350" rx="10" fill="#eaf2ee" stroke="#cfe0d7" stroke-dasharray="4,4"/><text x="422" y="32" text-anchor="middle" font-size="9" font-weight="700" fill="#526f65">LINE & PHOENIX</text><text x="35" y="24" font-size="10" font-weight="700" fill="#526f65">GILBERT GROUP (TUNGARU)</text><g transform="translate(35, 368)"><text font-size="9" fill="#526f65">Routes: <tspan fill="#08665d">⛵ Boats</tspan> · <tspan fill="#1e40af">🚢 Ships</tspan> · <tspan fill="#0284c7">✈️ Flights</tspan></text></g>';
@@ -466,3 +559,54 @@ function openShareModal(item){
 }
 const closeShare=$('#close-share');
 if(closeShare)closeShare.onclick=()=>$('#share-dialog')?.close();
+
+
+function openPrintBulletin(){
+ const island=$('#island')?.value||'All islands';
+ const activeItems=notices.filter(x=>matchesListingIsland(x,island)&&(!x.expires_at||Date.parse(x.expires_at)>Date.now()));
+ const w=window.open('','_blank');
+ if(!w)return toast('Please allow popups to generate the printable island bulletin.');
+ const departures=activeItems.filter(x=>['Boats','Ships','Flights'].includes(x.category));
+ const jobs=activeItems.filter(x=>x.category==='Jobs');
+ const community=activeItems.filter(x=>x.category==='Community');
+ const market=activeItems.filter(x=>x.category==='Marketplace');
+
+ let html='<!doctype html><html><head><meta charset="utf-8"><title>Island Bulletin - '+island+' - Kiribati Connect</title><style>body{font-family:ui-sans-serif,system-ui,sans-serif;padding:30px;color:#111;max-width:800px;margin:0 auto;line-height:1.4;}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #08665d;padding-bottom:12px;margin-bottom:20px;}h1{margin:0;font-size:24px;color:#08665d;}.sub{color:#555;font-size:12px;margin-top:4px;}.sec-title{font-size:15px;font-weight:bold;background:#eef6f3;padding:6px 10px;border-left:4px solid #08665d;margin:20px 0 10px;text-transform:uppercase;letter-spacing:0.5px;}.item{border-bottom:1px solid #ddd;padding:8px 0;}.item-title{font-weight:bold;font-size:14px;}.item-meta{font-size:12px;color:#444;}.item-desc{font-size:12px;color:#333;margin-top:3px;}.qr-side{text-align:right;}.qr-side svg{width:80px;height:80px;}.print-bar{margin-bottom:20px;text-align:right;}.print-btn{padding:8px 16px;background:#08665d;color:#fff;border:0;border-radius:6px;cursor:pointer;font-weight:bold;}@media print{.print-bar{display:none;}}</style></head><body><div class="print-bar"><button class="print-btn" onclick="window.print()">🖨️ Print Bulletin (A4)</button></div><div class="hdr"><div><h1>🇰🇮 Kiribati Connect · Island Notice Bulletin</h1><div class="sub">Community & Transport Summary for <strong>'+island+'</strong> · Generated '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</div></div><div class="qr-side"><div id="b-qr"></div><div style="font-size:9px;color:#666;">Scan for live updates</div></div></div>';
+
+ if(departures.length){
+  html+='<div class="sec-title">⛵ 🚢 ✈️ Upcoming Sailings, Voyages & Flights</div>';
+  for(const it of departures){
+   const d=it.details||{};
+   const via=d.viaIslands?' (via '+d.viaIslands+')':'';
+   const ret=d.returnDepartureLocal?' · Return: '+d.returnDepartureLocal.replace('T',' '):'';
+   const cargo=d.cargoAccepted?' · Cargo: '+(d.cargoStatus==='limited'?'Limited':'Accepted'):'';
+   html+='<div class="item"><div class="item-title">['+it.category.toUpperCase()+'] '+it.island+' → '+(d.destinationIsland||'Outer Island')+via+' · '+it.title+'</div><div class="item-meta">Departure: <strong>'+(d.departureLocal?.replace('T',' ')||'Scheduled')+'</strong>'+ret+' · Operator: '+(it.employer||'Operator')+' · Fare: '+(d.price?d.currency+' $'+d.price:'Contact operator')+cargo+'</div><div class="item-desc">'+it.body+' (Contact: '+(it.contact||'Wharf office')+')</div></div>';
+  }
+ }
+ if(jobs.length){
+  html+='<div class="sec-title">💼 Open Job Vacancies</div>';
+  for(const it of jobs){
+   html+='<div class="item"><div class="item-title">'+it.title+' · '+it.employer+'</div><div class="item-meta">Closing Date: <strong>'+(it.closing_date||'Open')+'</strong> · Apply/Contact: '+it.contact+'</div><div class="item-desc">'+it.body+'</div></div>';
+  }
+ }
+ if(community.length||market.length){
+  html+='<div class="sec-title">📢 Community Notices & Marketplace</div>';
+  for(const it of [...community,...market].slice(0,10)){
+   const tag=it.category==='Marketplace'?(it.details?.intent==='wanted'?'[WANTED]':'[SALE]'):'[COMMUNITY]';
+   const pr=it.details?.price!=null?' ('+(it.details.currency||'AUD')+' $'+it.details.price+')':'';
+   html+='<div class="item"><div class="item-title">'+tag+' '+it.title+pr+' ('+it.island+')</div><div class="item-desc">'+it.body+(it.contact?' · Contact: '+it.contact:'')+'</div></div>';
+  }
+ }
+ html+='<div style="margin-top:30px;border-top:1px dashed #888;padding-top:10px;font-size:11px;color:#666;text-align:center;">Posted from Kiribati Connect · https://kiribaticonnect.app · Keep our islands connected.</div>';
+
+ if(typeof qrcode==='function'){
+  const qr=qrcode(0,'M');
+  qr.addData('https://kiribaticonnect.app/?island='+encodeURIComponent(island));
+  qr.make();
+  html+='<script>document.getElementById("b-qr").innerHTML = \''+qr.createSvgTag(3).replace(/\n/g,'')+'\';</script>';
+ }
+ html+='</body></html>';
+ w.document.write(html);
+ w.document.close();
+}
+window.openPrintBulletin=openPrintBulletin;
