@@ -21,7 +21,7 @@ export default {
    return new Response(obj.body,{headers:{...security,'Content-Type':'application/vnd.android.package-archive','Content-Disposition':'attachment; filename="kiribati-connect.apk"','Cache-Control':'public, max-age=3600'}});
   }
   if(path==='/api/app/latest.json'){
-   return reply({version:'1.4.0',versionCode:5,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Added Marine Sea State Barometer, multi-stop voyages and return trips, nautical mile distance and travel time calculator, printable island bulletin, and marketplace wanted requests.'},200,{'Cache-Control':'public, max-age=600'});
+   return reply({version:'1.5.0',versionCode:6,releaseDate:'2026-11-14',url:'https://kiribaticonnect.app/download/kiribati-connect.apk',notes:'Integrated Kiribati real-time multi-zone clock (Gilbert UTC+12, Phoenix UTC+13, Line Islands UTC+14), live departure countdown timers, map local time overlays, and home screen widget clock.'},200,{'Cache-Control':'public, max-age=600'});
   }
   if(path.startsWith('/api/play/identity/'))return identityMetadata(request,env);
   if(path.startsWith('/api/alerts/'))return await handleAlerts(request,env);

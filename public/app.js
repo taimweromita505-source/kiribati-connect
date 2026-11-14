@@ -41,6 +41,90 @@ function boatStatusBadge(item){
  return {cls:'community-checked',text:'🟡 Community-checked'};
 }
 
+
+function getIslandTimezone(islandName){
+ const lineIslands=['Kiritimati','Tabuaeran','Teraina','Malden','Starbuck','Vostok','Flint','Millennium'];
+ const phoenixIslands=['Kanton','Birnie','Enderbury','Manra','McKean','Nikumaroro','Orona','Rawaki'];
+ if(islandName&&lineIslands.some(x=>islandName.includes(x))){
+  return {tz:'Pacific/Kiritimati',offset:14,group:'Line Islands',label:'Line Is. (UTC+14)'};
+ }
+ if(islandName&&phoenixIslands.some(x=>islandName.includes(x))){
+  return {tz:'Pacific/Kanton',offset:13,group:'Phoenix Islands',label:'Phoenix (UTC+13)'};
+ }
+ return {tz:'Pacific/Tarawa',offset:12,group:'Gilbert Group',label:'Gilbert (UTC+12)'};
+}
+
+function formatDepartureCountdown(depUtc,status){
+ if(status==='closed'||status==='departed')return {text:'⛵ Departed / In Transit',cls:'countdown-departed'};
+ if(status==='cancelled')return {text:'⚠️ Cancelled',cls:'countdown-cancelled'};
+ if(!depUtc)return null;
+ const diffMs=Date.parse(depUtc)-Date.now();
+ if(!Number.isFinite(diffMs))return null;
+ if(diffMs<=0)return {text:'⚠️ Past scheduled departure time',cls:'countdown-past'};
+ const diffSec=Math.floor(diffMs/1000);
+ const diffMin=Math.floor(diffSec/60);
+ const diffHr=Math.floor(diffMin/60);
+ const diffDay=Math.floor(diffHr/24);
+
+ if(diffMin<60){
+  const mins=Math.max(1,diffMin);
+  return {text:'⏳ Departs in '+mins+'m (Boarding soon!)',cls:'countdown-urgent'};
+ }
+ if(diffHr<24){
+  const remMins=diffMin%60;
+  return {text:'⏳ Departs in '+diffHr+'h '+remMins+'m',cls:'countdown-soon'};
+ }
+ if(diffDay<7){
+  const remHours=diffHr%24;
+  return {text:'⏳ Departs in '+diffDay+'d '+remHours+'h',cls:'countdown-scheduled'};
+ }
+ return {text:'⏳ Departs in '+diffDay+' days',cls:'countdown-scheduled'};
+}
+
+function updateKiribatiClock(){
+ const now=new Date();
+ const selectedIsland=$('#island')?.value||'All islands';
+ const activeTz=getIslandTimezone(selectedIsland);
+
+ const fmtTime=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+ const fmtShortTime=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(now);
+ const fmtDate=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,weekday:'short',day:'numeric',month:'short'}).format(now);
+
+ const tarawaTime=fmtTime('Pacific/Tarawa');
+ const kantonTime=fmtTime('Pacific/Kanton');
+ const kiritimatiTime=fmtTime('Pacific/Kiritimati');
+
+ const clockDisplay=$('#clock-display');
+ if(clockDisplay){
+  if(selectedIsland==='All islands'){
+   clockDisplay.textContent='Tarawa '+tarawaTime+' (UTC+12) · Kiritimati '+kiritimatiTime+' (UTC+14)';
+  }else{
+   const islandShort=selectedIsland.length>14?selectedIsland.slice(0,12)+'…':selectedIsland;
+   const activeTime=fmtTime(activeTz.tz);
+   clockDisplay.textContent=islandShort+' '+activeTime+' (UTC+'+activeTz.offset+')';
+  }
+ }
+
+ const asidePrimary=$('#aside-clock-primary');
+ if(asidePrimary){
+  const activeTime=selectedIsland==='All islands'?tarawaTime:fmtTime(activeTz.tz);
+  const activeDate=selectedIsland==='All islands'?fmtDate('Pacific/Tarawa'):fmtDate(activeTz.tz);
+  asidePrimary.textContent=activeTime;
+  const asideDate=$('#aside-clock-date');
+  if(asideDate)asideDate.textContent=activeDate+' · '+(selectedIsland==='All islands'?'Tarawa Standard':selectedIsland);
+  const asideZoneBadge=$('#aside-clock-active-zone');
+  if(asideZoneBadge)asideZoneBadge.textContent='UTC+'+(selectedIsland==='All islands'?'12':activeTz.offset);
+
+  const szTarawa=$('#sz-tarawa');
+  if(szTarawa)szTarawa.textContent=fmtShortTime('Pacific/Tarawa');
+  const szKanton=$('#sz-kanton');
+  if(szKanton)szKanton.textContent=fmtShortTime('Pacific/Kanton');
+  const szKiritimati=$('#sz-kiritimati');
+  if(szKiritimati)szKiritimati.textContent=fmtShortTime('Pacific/Kiritimati');
+ }
+}
+window.updateKiribatiClock=updateKiribatiClock;
+
 function render(){
  $('#nav').replaceChildren(...categories.map((c,i)=>{let b=element('button',view===c?'active':'');b.append(element('span','',icons[i]),document.createTextNode(c==='All updates'?'Home':c==='Boats'?'Boats':c==='Ships'?'Ship voyages':c==='Flights'?'Flights':c));b.onclick=()=>choose(c);b.setAttribute('aria-pressed',view===c);return b}));
  $('#filters').replaceChildren(...categories.map(c=>{let b=element('button',view===c?'active':'',c);b.onclick=()=>choose(c);b.setAttribute('aria-pressed',view===c);return b}));
@@ -93,6 +177,11 @@ function render(){
    if(est)card.insertBefore(element('p','route-distance-badge',est),card.querySelector('p'));
    if(x.details.viaIslands)card.insertBefore(element('p','via-stops-badge','⚓ Via: '+x.details.viaIslands),card.querySelector('p'));
    if(x.details.returnDepartureLocal)card.insertBefore(element('p','return-trip-badge','⇄ Return: '+x.details.returnDepartureLocal.replace('T',' ')),card.querySelector('p'));
+   if(['Boats','Ships','Flights'].includes(x.category)){
+    const depUtc=x.details?.departureUtc||(x.details?.departureLocal?(new Date(Date.parse(x.details.departureLocal+':00.000Z')-(x.details.utcOffset||12)*3600000).toISOString()):null);
+    const countdown=formatDepartureCountdown(depUtc,x.status==='closed'?'departed':(x.details?.flightStatus||x.details?.shipStatus||x.details?.boatStatus));
+    if(countdown)card.insertBefore(element('p','departure-countdown-badge '+countdown.cls,countdown.text),card.querySelector('p'));
+   }
   }
   if(x.category==='Marketplace'&&x.details?.intent==='wanted'){
    top.prepend(element('span','tag-wanted','🔍 WANTED'));
@@ -123,7 +212,7 @@ const reliableBox=$('#most-reliable');if(reliableBox)reliableBox.onchange=()=>{r
 $('#search').oninput=render;
 const priceFilterSelect=$('#price-filter');if(priceFilterSelect)priceFilterSelect.onchange=render;
 const printBulletinBtn=$('#print-bulletin-btn');if(printBulletinBtn)printBulletinBtn.onclick=openPrintBulletin;
-$('#island').onchange=()=>{updatePinBtn();updateWeather($('#island').value);render();};
+$('#island').onchange=()=>{updatePinBtn();updateWeather($('#island').value);updateKiribatiClock();render();};
 const pinBtn=$('#pin-island');
 if(pinBtn){
  pinBtn.onclick=()=>{
@@ -169,7 +258,7 @@ if(myIsland&&$('#island')){
 }
 updatePinBtn();
 online();
-render();updateWeather($('#island')?.value||'South Tarawa');
+render();updateWeather($('#island')?.value||'South Tarawa');updateKiribatiClock();setInterval(updateKiribatiClock,1000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(()=>$('#cache-status').textContent='Offline access ready on this device.').catch(()=>$('#cache-status').textContent='Offline access unavailable in this browser.')}else $('#cache-status').textContent='Offline caching needs a supported browser.';
 
 function matchesListingIsland(item,island){if(island==='All islands')return true;const members=[island,...($('#island').selectedOptions[0].dataset.members||'').split('|')];return members.includes(item.island)||members.includes(item.details?.destinationIsland)}
@@ -380,7 +469,7 @@ if(typeof navigator!=='undefined'&&navigator.userAgent?.includes('Android')&&!na
  if(hero){
   const banner=element('div','android-install-banner');
   banner.id='android-banner';
-  banner.innerHTML='⚡ <b>Android App</b>: Faster offline feed & home screen widget. <a href="/download/kiribati-connect.apk" class="install-apk-link">Download APK (v1.2.0) ↓</a>';
+  banner.innerHTML='⚡ <b>Android App</b>: Faster offline feed & home screen widget. <a href="/download/kiribati-connect.apk" class="install-apk-link">Download APK (v1.5.0) ↓</a>';
   hero.append(banner);
  }
 }
@@ -490,7 +579,7 @@ function renderIslandMap(){
    }
   }
  }
- let svg='<svg viewBox="0 0 490 380" class="atoll-map-svg" role="img" aria-label="Interactive Kiribati Island Map"><defs><radialGradient id="lagoon-grad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#99d6c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#08665d" stop-opacity="0.1"/></radialGradient></defs><rect width="100%" height="100%" rx="14" fill="#f1f7f4"/><rect x="365" y="15" width="115" height="350" rx="10" fill="#eaf2ee" stroke="#cfe0d7" stroke-dasharray="4,4"/><text x="422" y="32" text-anchor="middle" font-size="9" font-weight="700" fill="#526f65">LINE & PHOENIX</text><text x="35" y="24" font-size="10" font-weight="700" fill="#526f65">GILBERT GROUP (TUNGARU)</text><g transform="translate(35, 368)"><text font-size="9" fill="#526f65">Routes: <tspan fill="#08665d">⛵ Boats</tspan> · <tspan fill="#1e40af">🚢 Ships</tspan> · <tspan fill="#0284c7">✈️ Flights</tspan></text></g>';
+ let svg='<svg viewBox="0 0 490 380" class="atoll-map-svg" role="img" aria-label="Interactive Kiribati Island Map"><defs><radialGradient id="lagoon-grad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#99d6c7" stop-opacity="0.6"/><stop offset="100%" stop-color="#08665d" stop-opacity="0.1"/></radialGradient></defs><rect width="100%" height="100%" rx="14" fill="#f1f7f4"/><rect x="365" y="15" width="115" height="350" rx="10" fill="#eaf2ee" stroke="#cfe0d7" stroke-dasharray="4,4"/><text x="422" y="28" text-anchor="middle" font-size="9" font-weight="700" fill="#526f65">LINE & PHOENIX</text><text x="422" y="40" text-anchor="middle" font-size="8" font-weight="700" fill="#08665d">'+new Intl.DateTimeFormat('en-GB',{timeZone:'Pacific/Kiritimati',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date())+' (UTC+14)</text><text x="35" y="24" font-size="10" font-weight="700" fill="#526f65">GILBERT GROUP (TUNGARU) · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Pacific/Tarawa',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date())+' (UTC+12)</text><g transform="translate(35, 368)"><text font-size="9" fill="#526f65">Routes: <tspan fill="#08665d">⛵ Boats</tspan> · <tspan fill="#1e40af">🚢 Ships</tspan> · <tspan fill="#0284c7">✈️ Flights</tspan></text></g>';
  for(const r of activeRoutes){
   const curvature=r.type==='Flights'?-0.32:r.type==='Ships'?0.22:0.12;
   const mx=(r.from.x+r.to.x)/2+(r.from.y-r.to.y)*curvature,my=(r.from.y+r.to.y)/2+(r.to.x-r.from.x)*curvature;

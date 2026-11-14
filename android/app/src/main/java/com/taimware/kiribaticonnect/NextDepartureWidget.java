@@ -13,9 +13,12 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
-/** Home screen widget: next boat departure and latest job. Data is the public feed; cached for offline. */
+/** Home screen widget: real-time Kiribati standard clock, next departure countdown and latest job. Data cached for offline. */
 public class NextDepartureWidget extends AppWidgetProvider {
   private static final String ORIGIN = "https://kiribaticonnect.app";
 
@@ -24,21 +27,32 @@ public class NextDepartureWidget extends AppWidgetProvider {
     new Thread(() -> {
       try {
         SharedPreferences prefs = context.getSharedPreferences("widget", Context.MODE_PRIVATE);
-        String boat = prefs.getString("boat", "Open the app to load boats");
+        String boat = prefs.getString("boat", "Open the app to load departures");
         String job = prefs.getString("job", "Open the app to load jobs");
         try {
           JSONArray notices = fetch();
           String[] result = summarise(notices);
           if (result[0] != null) boat = result[0];
-          else boat = "No upcoming boats listed";
+          else boat = "No upcoming departures listed";
           if (result[1] != null) job = result[1];
           else job = "No open jobs listed";
           prefs.edit().putString("boat", boat).putString("job", job).apply();
         } catch (Exception offline) {
           // Keep the last cached values when offline.
         }
+
+        // Live Kiribati Tarawa time (UTC+12)
+        String timeStr;
+        try {
+          ZonedDateTime tarawaNow = ZonedDateTime.now(ZoneId.of("Pacific/Tarawa"));
+          timeStr = tarawaNow.format(DateTimeFormatter.ofPattern("HH:mm")) + " (UTC+12)";
+        } catch (Exception e) {
+          timeStr = "Tarawa (UTC+12)";
+        }
+
         for (int id : ids) {
           RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_next);
+          views.setTextViewText(R.id.widget_clock, timeStr);
           views.setTextViewText(R.id.widget_boat, boat);
           views.setTextViewText(R.id.widget_job, job);
           Intent open = new Intent(context, MainActivity.class);
@@ -84,7 +98,19 @@ public class NextDepartureWidget extends AppWidgetProvider {
           if (when > now && when < bestTime) {
             bestTime = when;
             String icon = "Flights".equals(category) ? "\u2708\uFE0F " : "Ships".equals(category) ? "\uD83D\uDEA2 " : "\u26F5 ";
-            boat = icon + item.optString("island") + " \u2192 " + details.optString("destinationIsland") + " \u00B7 " + details.optString("departureLocal").replace('T', ' ');
+            long diffMilli = when - now;
+            long diffMin = diffMilli / 60000;
+            long diffHr = diffMin / 60;
+            String countdown;
+            if (diffMin < 60) {
+              countdown = " \u00B7 in " + Math.max(1, diffMin) + "m";
+            } else if (diffHr < 24) {
+              countdown = " \u00B7 in " + diffHr + "h " + (diffMin % 60) + "m";
+            } else {
+              long days = diffHr / 24;
+              countdown = " \u00B7 in " + days + "d";
+            }
+            boat = icon + item.optString("island") + " \u2192 " + details.optString("destinationIsland") + countdown;
           }
         } catch (Exception ignored) { }
       } else if ("Jobs".equals(category) && job == null) {

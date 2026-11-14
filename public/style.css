@@ -182,3 +182,48 @@ body.theme-dark .tag-wanted{background:#2e2411;color:#fbbf24;border-color:#78350
 body.theme-dark .route-distance-badge{background:#132a1c;color:#86efac;border-color:#166534;}
 body.theme-dark .via-stops-badge{background:#1e293b;color:#94a3b8;border-color:#334155;}
 body.theme-dark .return-trip-badge{background:#2a2412;color:#fef08a;border-color:#854d0e;}
+
+/* Real-Time Kiribati Clock & Countdown Badges */
+.kiribati-clock-badge{display:inline-flex;align-items:center;gap:7px;background:#eef6f3;border:1px solid #bce1d0;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:600;color:#08665d;white-space:nowrap;}
+.clock-pulse{color:#10b981;font-size:11px;line-height:1;animation:clock-pulse-anim 1.6s ease-in-out infinite;}
+@keyframes clock-pulse-anim{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(0.85);}}
+
+.aside-clock-card{margin:18px 0 24px;padding:16px;border-radius:14px;background:#f0f7f3;border:1px solid #d4e8de;}
+.aside-clock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.aside-clock-title{font-size:10px;font-weight:800;letter-spacing:1px;color:#526f65;}
+.aside-clock-zone-badge{font-size:9px;font-weight:750;background:#08665d;color:#fff;padding:2px 7px;border-radius:10px;}
+.aside-clock-time{font-size:24px;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#08665d;line-height:1.1;margin:4px 0;}
+.aside-clock-date{font-size:11px;color:#5c786e;margin-bottom:12px;}
+.aside-clock-subzones{display:grid;gap:5px;border-top:1px dashed #c8e0d5;padding-top:10px;}
+.subzone-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#4a675d;}
+.subzone-val{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;color:#163f3a;}
+
+.departure-countdown-badge{display:inline-block;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;margin:4px 0;}
+.countdown-urgent{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;animation:clock-pulse-anim 2s infinite;}
+.countdown-soon{background:#fffbeb;color:#b45309;border:1px solid #fde68a;}
+.countdown-scheduled{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
+.countdown-past{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;}
+.countdown-departed{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;}
+.countdown-cancelled{background:#fef2f2;color:#991b1b;border:1px solid #f87171;}
+
+body.theme-dark .kiribati-clock-badge{background:#132921;border-color:#20483a;color:#6ee7b7;}
+body.theme-dark .aside-clock-card{background:#14231e;border-color:#213b32;}
+body.theme-dark .aside-clock-title{color:#7fa194;}
+body.theme-dark .aside-clock-time{color:#5eead4;}
+body.theme-dark .aside-clock-date{color:#8daaa0;}
+body.theme-dark .aside-clock-subzones{border-color:#234035;}
+body.theme-dark .subzone-row{color:#98ada4;}
+body.theme-dark .subzone-val{color:#e2ece7;}
+body.theme-dark .countdown-urgent{background:#311516;color:#fca5a5;border-color:#7f1d1d;}
+body.theme-dark .countdown-soon{background:#2f220d;color:#fde047;border-color:#78350f;}
+body.theme-dark .countdown-scheduled{background:#152238;color:#93c5fd;border-color:#1e3a8a;}
+body.theme-dark .countdown-past{background:#1c2421;color:#9ca3af;border-color:#374151;}
+body.theme-dark .countdown-departed{background:#1c2421;color:#94a3b8;border-color:#334155;}
+body.theme-dark .countdown-cancelled{background:#311516;color:#fca5a5;border-color:#7f1d1d;}
+
+@media(max-width:850px){
+  .aside-clock-card{margin:12px 0 0;padding:12px;}
+}
+@media(max-width:520px){
+  .kiribati-clock-badge{padding:5px 8px;font-size:10px;gap:5px;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+}
