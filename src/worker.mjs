@@ -57,7 +57,7 @@ export default {
   const policyRoutes={'/privacy':'/privacy.html','/terms':'/terms.html','/delete-account':'/delete-account.html','/safety':'/safety.html'};
   const key=policyRoutes[path]|| (path==='/'||path==='/index.html'?'/community.html':path==='/login'||path==='/account'?'/auth.html':path.startsWith('/listing/')?'/community.html':path);
   const asset=assets[key];if(!asset)return new Response('Not found',{status:404,headers:security});
-  return new Response(request.method==='HEAD'?null:asset.body,{headers:{...security,'Content-Type':asset.type,'Cache-Control':'no-cache'}});
+  return new Response(request.method==='HEAD'?null:asset.body,{headers:{...security,'Content-Type':asset.type,'Cache-Control':'no-cache, no-store, must-revalidate'}});
  }catch(error){console.error(JSON.stringify({event:'request_failed',message:error instanceof Error?error.message:'Unknown error'}));return reply({error:'The app is temporarily unavailable. Please try again.'},503)}},
  async scheduled(event,env){await reconcilePlay(env);await env.DB.batch([env.DB.prepare('DELETE FROM sessions WHERE expires_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM auth_limits WHERE expires_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM safety_reports WHERE created_at<?').bind(new Date(Date.now()-90*86400000).toISOString()),...['play_purchases','paypal_checkouts','listing_payments','payment_events'].map(table=>env.DB.prepare('DELETE FROM '+table+' WHERE created_at<?').bind(new Date(Date.now()-7*366*86400000).toISOString()))]);await sendWeeklyDigests(env);}
 };

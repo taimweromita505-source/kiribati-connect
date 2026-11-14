@@ -89,11 +89,44 @@ function updateKiribatiClock(){
  const fmtTime=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
  const fmtShortTime=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(now);
  const fmtDate=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,weekday:'short',day:'numeric',month:'short'}).format(now);
+ const fmtLongDate=(tz)=>new Intl.DateTimeFormat('en-GB',{timeZone:tz,weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now);
 
  const tarawaTime=fmtTime('Pacific/Tarawa');
  const kantonTime=fmtTime('Pacific/Kanton');
  const kiritimatiTime=fmtTime('Pacific/Kiritimati');
+ const tarawaShort=fmtShortTime('Pacific/Tarawa');
+ const kantonShort=fmtShortTime('Pacific/Kanton');
+ const kiritimatiShort=fmtShortTime('Pacific/Kiritimati');
 
+ // Top ticker
+ const tickerPrimary=$('#ticker-primary-time');
+ if(tickerPrimary)tickerPrimary.textContent=selectedIsland==='All islands'?tarawaTime:fmtTime(activeTz.tz);
+ const tickerIsland=$('#ticker-active-island');
+ if(tickerIsland)tickerIsland.textContent=selectedIsland==='All islands'?'Tarawa (UTC+12)':selectedIsland+' (UTC+'+activeTz.offset+')';
+ const tTarawa=$('#ticker-tarawa-time');if(tTarawa)tTarawa.textContent=tarawaShort;
+ const tKanton=$('#ticker-kanton-time');if(tKanton)tKanton.textContent=kantonShort;
+ const tKiritimati=$('#ticker-kiritimati-time');if(tKiritimati)tKiritimati.textContent=kiritimatiShort;
+
+ // Rail card
+ const railDisplay=$('#rail-clock-display');
+ if(railDisplay)railDisplay.textContent=selectedIsland==='All islands'?tarawaTime:fmtTime(activeTz.tz);
+ const railDate=$('#rail-clock-date');
+ if(railDate)railDate.textContent=fmtLongDate(selectedIsland==='All islands'?'Pacific/Tarawa':activeTz.tz);
+ const rzGilbert=$('#rz-gilbert-time');if(rzGilbert)rzGilbert.textContent=tarawaTime;
+ const rzPhoenix=$('#rz-phoenix-time');if(rzPhoenix)rzPhoenix.textContent=kantonTime;
+ const rzLine=$('#rz-line-time');if(rzLine)rzLine.textContent=kiritimatiTime;
+
+ // Hero clock
+ const heroText=$('#hero-clock-text');
+ if(heroText){
+  if(selectedIsland==='All islands'){
+   heroText.textContent='Kiribati Real Time: Tarawa '+tarawaShort+' (UTC+12) · Kiritimati '+kiritimatiShort+' (UTC+14)';
+  }else{
+   heroText.textContent=selectedIsland+': '+fmtTime(activeTz.tz)+' (UTC+'+activeTz.offset+')';
+  }
+ }
+
+ // Header clock badge
  const clockDisplay=$('#clock-display');
  if(clockDisplay){
   if(selectedIsland==='All islands'){
@@ -105,6 +138,7 @@ function updateKiribatiClock(){
   }
  }
 
+ // Aside sidebar clock card
  const asidePrimary=$('#aside-clock-primary');
  if(asidePrimary){
   const activeTime=selectedIsland==='All islands'?tarawaTime:fmtTime(activeTz.tz);
@@ -115,12 +149,9 @@ function updateKiribatiClock(){
   const asideZoneBadge=$('#aside-clock-active-zone');
   if(asideZoneBadge)asideZoneBadge.textContent='UTC+'+(selectedIsland==='All islands'?'12':activeTz.offset);
 
-  const szTarawa=$('#sz-tarawa');
-  if(szTarawa)szTarawa.textContent=fmtShortTime('Pacific/Tarawa');
-  const szKanton=$('#sz-kanton');
-  if(szKanton)szKanton.textContent=fmtShortTime('Pacific/Kanton');
-  const szKiritimati=$('#sz-kiritimati');
-  if(szKiritimati)szKiritimati.textContent=fmtShortTime('Pacific/Kiritimati');
+  const szTarawa=$('#sz-tarawa');if(szTarawa)szTarawa.textContent=tarawaShort;
+  const szKanton=$('#sz-kanton');if(szKanton)szKanton.textContent=kantonShort;
+  const szKiritimati=$('#sz-kiritimati');if(szKiritimati)szKiritimati.textContent=kiritimatiShort;
  }
 }
 window.updateKiribatiClock=updateKiribatiClock;
@@ -699,3 +730,5 @@ function openPrintBulletin(){
  w.document.close();
 }
 window.openPrintBulletin=openPrintBulletin;
+
+document.addEventListener('DOMContentLoaded',updateKiribatiClock);updateKiribatiClock();

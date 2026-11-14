@@ -227,3 +227,51 @@ body.theme-dark .countdown-cancelled{background:#311516;color:#fca5a5;border-col
 @media(max-width:520px){
   .kiribati-clock-badge{padding:5px 8px;font-size:10px;gap:5px;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
 }
+
+/* Prominent Kiribati Real-Time Ticker & Widgets */
+.kiribati-top-ticker{background:#e7f3ee;border-bottom:1px solid #cce5da;padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:#08665d;}
+.ticker-left{display:flex;align-items:center;gap:8px;font-weight:700;}
+.ticker-title{font-size:11px;letter-spacing:0.8px;}
+.ticker-pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#10b981;box-shadow:0 0 7px #10b981;animation:clock-pulse-anim 1.5s infinite;}
+.ticker-time{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;font-weight:800;color:#08665d;letter-spacing:0.5px;}
+.ticker-island-tag{font-size:10px;font-weight:750;background:#08665d;color:#fff;padding:2px 8px;border-radius:12px;}
+.ticker-zones{display:flex;align-items:center;gap:8px;font-size:11px;flex-wrap:wrap;}
+.ticker-zone-item{display:inline-flex;align-items:center;gap:4px;color:#355c50;background:#fff;padding:3px 8px;border-radius:12px;border:1px solid #d4e8de;}
+.ticker-zone-item b{color:#08665d;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+
+.hero-live-clock{display:inline-flex;align-items:center;gap:8px;background:#d7e7dc;border:1px solid #bed6c7;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#08665d;margin:10px 0 16px;}
+
+.rail-clock-card{background:#edf6f1;border:1px solid #c9e4d7;border-radius:16px;padding:20px;margin-bottom:18px;}
+.rail-clock-display{font-size:32px;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#08665d;letter-spacing:1px;margin:8px 0 2px;}
+.rail-clock-date{font-size:12px;font-weight:600;color:#526f65;margin-bottom:14px;}
+.rail-zones-list{display:grid;gap:6px;border-top:1px dashed #b8dbcc;padding-top:12px;}
+.rail-zone-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:5px 8px;border-radius:8px;background:#fff;border:1px solid #d9ede3;}
+.rail-zone-row.active-zone{background:#dcf2e8;border-color:#08665d;font-weight:700;}
+.rz-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#e2ece7;color:#08665d;}
+.rz-time{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;color:#163f3a;}
+.rail-clock-note{font-size:10px;line-height:1.4;color:#6b8b7e;margin-top:10px;font-style:italic;}
+
+body.theme-dark .kiribati-top-ticker{background:#11231c;border-color:#1c392e;color:#5eead4;}
+body.theme-dark .ticker-time{color:#5eead4;}
+body.theme-dark .ticker-zone-item{background:#182e25;border-color:#24473a;color:#a7c8be;}
+body.theme-dark .ticker-zone-item b{color:#5eead4;}
+body.theme-dark .hero-live-clock{background:#182a22;border-color:#274337;color:#5eead4;}
+body.theme-dark .rail-clock-card{background:#13231e;border-color:#1f3a31;}
+body.theme-dark .rail-clock-display{color:#5eead4;}
+body.theme-dark .rail-clock-date{color:#8ea79d;}
+body.theme-dark .rail-zones-list{border-color:#204337;}
+body.theme-dark .rail-zone-row{background:#182d25;border-color:#24473b;color:#a4c6bc;}
+body.theme-dark .rail-zone-row.active-zone{background:#1e3c31;border-color:#34baa9;}
+body.theme-dark .rz-badge{background:#234438;color:#5eead4;}
+body.theme-dark .rz-time{color:#e8f4ef;}
+body.theme-dark .rail-clock-note{color:#77998d;}
+
+@media(max-width:850px){
+  header>div{flex-wrap:wrap;}
+}
+@media(max-width:520px){
+  .kiribati-top-ticker{padding:6px 12px;font-size:11px;}
+  .ticker-time{font-size:14px;}
+  .ticker-zones{font-size:10px;}
+  .hero-live-clock{font-size:11px;padding:4px 10px;}
+}
