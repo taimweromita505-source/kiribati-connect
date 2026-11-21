@@ -3,6 +3,7 @@ import {pathToFileURL} from 'node:url';
 const esbuild=process.argv[2]?await import(pathToFileURL(process.argv[2]).href):await import('esbuild');
 const types={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'application/javascript',json:'application/json',svg:'image/svg+xml'};
 const assets={};for(const name of readdirSync('public'))assets['/'+name]={body:readFileSync('public/'+name,'utf8'),type:types[name.split('.').pop()]||'text/plain'};
+assets['/.well-known/assetlinks.json']=assets['/assetlinks.json'];delete assets['/assetlinks.json'];
 const catalog=JSON.parse(readFileSync('public/islands.json','utf8'));
 const escape=text=>text.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 function islandOptions(selected){return catalog.groups.map(group=>'<optgroup label="'+escape(group.name)+'">'+group.islands.map(island=>'<option value="'+escape(island.name)+'"'+(island.name===selected?' selected':'')+(island.includes?' data-members="'+escape(island.includes.join('|'))+'"':'')+'>'+escape(island.label||island.name)+'</option>').join('')+'</optgroup>').join('')}

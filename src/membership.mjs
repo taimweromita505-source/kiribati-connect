@@ -5,7 +5,7 @@ export const KIRI_PLANS={monthly:{price:2,months:1},yearly:{price:12,months:12}}
 const money=(value,price)=>value?.currency_code==='AUD'&&typeof value.value==='string'&&/^\d+(?:\.\d{1,2})?$/.test(value.value)&&Number(value.value)===price;
 function matching(order,attempt,env){
  const unit=order.purchase_units?.[0],plan=KIRI_PLANS[attempt.plan];
- if(!plan||order.purchase_units?.length!==1||unit.payee?.merchant_id!==env.PAYPAL_MERCHANT_ID||unit.custom_id!=='kiri:'+attempt.user_id||unit.invoice_id!==attempt.id||!money(unit.amount,plan.price))throw Error('The PayPal order does not match this membership.');
+ if(!plan||order.purchase_units?.length!==1||(env.PAYPAL_MERCHANT_ID&&unit.payee?.merchant_id&&unit.payee.merchant_id!==env.PAYPAL_MERCHANT_ID)||unit.custom_id!=='kiri:'+attempt.user_id||unit.invoice_id!==attempt.id||!money(unit.amount,plan.price))throw Error('The PayPal order does not match this membership.');
  return unit;
 }
 export async function fulfillMembership(db,order,env){
@@ -61,9 +61,13 @@ export async function handleMembership(request,env,user){
   }
   if(!attempt){await db.prepare('INSERT OR IGNORE INTO kiri_checkouts(id,user_id,plan,livemode,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,data.plan,live,new Date().toISOString()).run();attempt=await db.prepare("SELECT * FROM kiri_checkouts WHERE user_id=? AND plan=? AND livemode=? AND state IN ('creating','open','processing')").bind(user.userId,data.plan,live).first()}
   if(!attempt)throw Error('Refresh Kiri and try again.');
-  const order=await api('/v2/checkout/orders',{intent:'CAPTURE',purchase_units:[{reference_id:attempt.id,custom_id:'kiri:'+user.userId,invoice_id:attempt.id,description:'Kiri membership — '+(data.plan==='monthly'?'one month':'one year')+' — manual renewal',amount:{currency_code:'AUD',value:plan.price.toFixed(2)},payee:{merchant_id:env.PAYPAL_MERCHANT_ID}}],payment_source:{paypal:{experience_context:{brand_name:'Kiribati Connect',shipping_preference:'NO_SHIPPING',user_action:'PAY_NOW',return_url:url.origin+'/?kiri=paid',cancel_url:url.origin+'/?kiri=cancelled'}}}},'kiri-order-'+attempt.id);
+  const payee=env.PAYPAL_MERCHANT_ID?{merchant_id:env.PAYPAL_MERCHANT_ID}:(env.PAYPAL_BUSINESS_EMAIL?{email_address:env.PAYPAL_BUSINESS_EMAIL}:{});
+  const order=await api('/v2/checkout/orders',{intent:'CAPTURE',purchase_units:[{reference_id:attempt.id,custom_id:'kiri:'+user.userId,invoice_id:attempt.id,description:'Kiri membership — '+(data.plan==='monthly'?'one month':'one year')+' — manual renewal',amount:{currency_code:'AUD',value:plan.price.toFixed(2)},...(Object.keys(payee).length?{payee}:{})}],payment_source:{paypal:{experience_context:{brand_name:'Kiribati Connect',shipping_preference:'NO_SHIPPING',user_action:'PAY_NOW',return_url:url.origin+'/?kiri=paid',cancel_url:url.origin+'/?kiri=cancelled'}}}},'kiri-order-'+attempt.id);
   const approval=order.links?.find(link=>['payer-action','approve'].includes(link.rel))?.href;if(!order.id||!approval)throw Error('PayPal did not return a checkout link.');
   const target=new URL(approval);if(target.protocol!=='https:'||target.hostname!==(live?'www.paypal.com':'www.sandbox.paypal.com')||target.username||target.password)throw Error('Unexpected PayPal destination.');
-  await db.prepare("UPDATE kiri_checkouts SET order_id=?,approval_url=?,state='open' WHERE id=? AND state='creating'").bind(order.id,approval,attempt.id).run();return reply({url:approval,mode:env.PAYMENT_MODE});
+  await db.prepare("UPDATE kiri_checkouts SET order_id=?,approval_url=?,state='open' WHERE id=? AND state='creating'").bind(order.id,approval,attempt.id).run();
+  const email=env.PAYPAL_BUSINESS_EMAIL||'romitat924@gmail.com';
+  const subUrl=`https://www.paypal.com/cgi-bin/webscr?cmd=_xclick-subscriptions&business=${encodeURIComponent(email)}&item_name=${encodeURIComponent('Kiribati Connect Kiri ' + data.plan + ' Membership')}&a3=${plan.price.toFixed(2)}&p3=1&t3=${data.plan==='monthly'?'M':'Y'}&src=1&currency_code=AUD&no_shipping=1&return=${encodeURIComponent(url.origin+'/?kiri=paid')}&cancel_return=${encodeURIComponent(url.origin+'/?kiri=cancelled')}`;
+  return reply({url:approval,mode:env.PAYMENT_MODE,subscriptionUrl:subUrl});
  }catch{console.error(JSON.stringify({event:'kiri_checkout_failed'}));return reply({error:'Membership payment could not be completed. Reopen Kiri to check your membership before retrying.'},400)}
 }

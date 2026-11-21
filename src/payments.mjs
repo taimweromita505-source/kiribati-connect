@@ -20,7 +20,7 @@ export async function fulfillPayment(db,payment,mode,eventId){
  const now=new Date().toISOString();
  await db.batch([
   db.prepare("UPDATE listing_payments SET state='paid',paid_at=COALESCE(paid_at,?),payment_intent=? WHERE id=? AND (payment_intent IS NULL OR payment_intent=?)").bind(now,payment.id,attempt.id,payment.id),
-  db.prepare("UPDATE notices SET payment_state='paid',paid_at=COALESCE(paid_at,?),status=CASE WHEN status='draft' AND (expires_at IS NULL OR expires_at>?) AND (category!='Boats' OR json_extract(details_json,'$.boatStatus')='cancelled' OR json_extract(details_json,'$.departureUtc')>?) THEN 'approved' ELSE status END,updated_at=?,version=version+1 WHERE id=? AND author_id=? AND payment_state='unpaid' AND EXISTS(SELECT 1 FROM listing_payments WHERE id=? AND state='paid' AND payment_intent=?)").bind(now,now,now,now,attempt.listing_id,attempt.user_id,attempt.id,payment.id),
+  db.prepare("UPDATE notices SET payment_state='paid',paid_at=COALESCE(paid_at,?),status=CASE WHEN status='draft' AND (expires_at IS NULL OR expires_at>?) AND (category NOT IN ('Boats','Ships','Flights') OR json_extract(details_json,'$.boatStatus')='cancelled' OR json_extract(details_json,'$.departureUtc')>?) THEN 'approved' ELSE status END,updated_at=?,version=version+1 WHERE id=? AND author_id=? AND payment_state='unpaid' AND EXISTS(SELECT 1 FROM listing_payments WHERE id=? AND state='paid' AND payment_intent=?)").bind(now,now,now,now,attempt.listing_id,attempt.user_id,attempt.id,payment.id),
   db.prepare('INSERT OR IGNORE INTO payment_events(id,event_type,created_at) VALUES(?,?,?)').bind(eventId||'payment-'+payment.id,'square.payment.completed',now)
  ]);
 }
