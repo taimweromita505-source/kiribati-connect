@@ -289,7 +289,6 @@ if(myIsland&&$('#island')){
 }
 updatePinBtn();
 online();
-render();updateWeather($('#island')?.value||'South Tarawa');updateKiribatiClock();setInterval(updateKiribatiClock,1000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(()=>$('#cache-status').textContent='Offline access ready on this device.').catch(()=>$('#cache-status').textContent='Offline access unavailable in this browser.')}else $('#cache-status').textContent='Offline caching needs a supported browser.';
 
 function matchesListingIsland(item,island){if(island==='All islands')return true;const members=[island,...($('#island').selectedOptions[0].dataset.members||'').split('|')];return members.includes(item.island)||members.includes(item.details?.destinationIsland)}
@@ -732,3 +731,5 @@ function openPrintBulletin(){
 window.openPrintBulletin=openPrintBulletin;
 
 document.addEventListener('DOMContentLoaded',updateKiribatiClock);updateKiribatiClock();
+
+render();updateWeather($('#island')?.value||'South Tarawa');updateKiribatiClock();setInterval(updateKiribatiClock,1000);
